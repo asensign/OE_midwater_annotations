@@ -81,22 +81,11 @@ if (length(annotation_paths > 1)) {
                                 na.strings = "")
   annotation_clean <- clean_annotation(annotation_import)
 }
-
 #str(annotation_clean)
 #View(annotation_clean)
 
 
 # Filter based on COMMENTED start/end transect times
-
-# ROVstart<- annotation_clean
-#   filter(str_detect(comment, regex("start transect", ignore_case = T)))%>%
-#   #select(dive_name,comment,start_date,end_date,latstart,longstart)%>%
-#   as.data.frame()%>%
-#   #mutate(variable = "on_bottom")
-# print(ROVstart)
-
-#seatube<-read.csv("SeaTubeAnnotations_edit.csv")%>%
-#  mutate(start_date = ymd_hms(start_date),end_date = ymd_hms(end_date))
 
 transect_start2<-filter(annotation_clean, (str_detect(comment, regex("start transect", ignore_case = T))))
 transect_start<-(select(transect_start2, expedition, dive_number, date_time, comment, latitude_deg, longitude_deg, depth_m))
@@ -104,48 +93,57 @@ transect_start<-(select(transect_start2, expedition, dive_number, date_time, com
 transect_end2<-filter(annotation_clean, (str_detect(comment, regex("end transect", ignore_case = T))))
 transect_end<-(select(transect_end2, expedition, dive_number, date_time, comment, latitude_deg, longitude_deg, depth_m))
 
-print(length(transect_start))
 # check for match between commented transect depth and actual measured depth
 
-# combine transect start and end times
-transect_times<-data.frame(transect_start,transect_end)
-print(transect_times)
-
-# add transect ID column
-
-# for each row where dive_number is the same, iterate each transect # 1-whatever
-# when the dive_number changes, restart and iterate again for that length
-# when we hit this, break loop
 
 
-# for each row of transect_times
-# filter to see if prev row is same
-# while it is the same, add id row for current row
-# when it is not, exit loop
-# then somehow restart and relabel the next dive's rows
 
-for (i in length(transect_times)) {
 
-  if (transect_times[i], dive_number == lag(dive_number)) {
-    # add ID sequentially
-    print('sequential here')
-  } else {
-    print('should change here')
+
+# Filter for annotations falling within midwater transects
+
+filtered <- data.frame()
+
+for(i in 1:nrow(annotation_clean)){      # for each annotation
+  for (j in 1:nrow(transect_start)){     # check each transect start/end time 
+    
+    t_start<- ymd_hms(transect_start$date_time[j])    # set nicer var names & iterate thru annotations and transect times
+    t_end<- ymd_hms(transect_end$date_time[j])
+    ann_time<-ymd_hms(annotation_clean$date_time[i])
+    
+    if (ann_time > t_start && ann_time < t_end){    
+      filtered <- rbind(filtered, (annotation_clean[i,]))  # append each annotation that falls under the if statement to the new df, filtered, and rename
+    }
   }
-  
-  
+}
+
+#########################################################################
+
+# TRANSECT ID NUMBER 
+# don't need to use transect times - just iterate based on dive # same/change
+
+counter <- 0
+
+for (i in 1:nrow(filtered)) {
+  if (filtered$dive_number[i] == lag(filtered$dive_number[i])) { # this needs debugged
+    filtered$transect_number[i] <- counter + 1
+  }
+  else {
+    counter <- 1
+    filtered$transect_number[i] <- counter + 1
+  }
 }
 
 
-  
-  
+relocate(transect_number, .after = dive_number)
 
 
 
 
-# filter all annotations by whether they fall btwn start and end times
 
 
+
+#-------------------------------------------------------------------------------
 
 
 benthic_join<-dplyr::inner_join(annotation_clean, benthic_times, 
