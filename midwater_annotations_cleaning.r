@@ -133,8 +133,18 @@ transect_info$depth_ID <- NA
 for (i in 1:(nrow(transect_info))) {
   transect_info$depth_ID[i] <- extract_numeric(transect_info$comment[i])
 }
-
 #print(transect_info)
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# check for match between commented transect depth and actual measured depth
+# tolerance of 3 m
+for (i in 1:nrow(clean_df)) {
+  upper_bound <- as.numeric(transect_info$depth_ID[i]) + 3
+  lower_bound <- as.numeric(transect_info$depth_ID[i]) - 3
+  if (isTRUE(transect_info$depth[i] > upper_bound | transect_info$depth[i] < lower_bound)) {
+    print('Measured depth +/-3 m outside of transect depth')
+  }
+}
 #-------------------------------------------------------------------------------
 # Filter for annotations falling within midwater transects
 
@@ -156,24 +166,28 @@ for(i in 1:nrow(annotation_clean)){                                             
 filtered$transect_num <- NA         
 filtered$depth_ID <- NA                                                                        # declare a new column in the annotations for transect # (so rbind doesn't freak out)
 annotations_with_transects <- arrange(rbind(filtered,transect_info), date_time)      # append the transect rows (full anns) with the full annotations
-print(annotations_with_transects)
 
+clean_df1 <- annotations_with_transects %>% fill(depth_ID)
+clean_df <- clean_df1 %>% fill(transect_num)
 
-# copy transect numbers all the way down the annotation rows until it shifts
+# print(clean_df)
 
-
-
-
-
-
-
-
-#--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# check for match between commented transect depth and actual measured depth
-
-# is there a way to dynamically pull the depth from each comment? it's a string so idk if that's possible
 #-------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+#-------------------------------------------------------------------------------
+
 
 benthic_join<-dplyr::inner_join(annotation_clean, benthic_times, 
                                 dplyr::join_by("dive_number" == "dive_number"))
@@ -231,10 +245,6 @@ for (i in length(dive_summary_paths)) {
   transect_df<-data.frame(transect_n, transect_start, transect_end, transect_depth) # does NOT separate by dive
   print(transect_df)
 }
-
-
-
-
 
 
 
