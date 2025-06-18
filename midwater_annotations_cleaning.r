@@ -83,27 +83,16 @@ if (length(annotation_paths > 1)) {
 }
 #str(annotation_clean)
 #View(annotation_clean)
-
-
-# Filter based on COMMENTED start/end transect times from seatube (not from text files for midwater)
-
-transect_start2<-filter(annotation_clean, (str_detect(comment, regex("start transect", ignore_case = T))))
-transect_start<-(select(transect_start2, expedition, dive_number, date_time, comment, latitude_deg, longitude_deg, depth_m))
-
-transect_end2<-filter(annotation_clean, (str_detect(comment, regex("end transect", ignore_case = T))))
-transect_end<-(select(transect_end2, expedition, dive_number, date_time, comment, latitude_deg, longitude_deg, depth_m))
-
-transect_times <- arrange(rbind(transect_start,transect_end), date_time) # combine transect start and end times and sort by date_time
-#print(transect_times)
+#-------------------------------------------------------------------------------
+# Pull commented start/end transect times from seatube csv 
+transect_start<-filter(annotation_clean, (str_detect(comment, regex("start transect", ignore_case = T))))
+transect_end<-filter(annotation_clean, (str_detect(comment, regex("end transect", ignore_case = T))))
 
 #-------------------------------------------------------------------------------
 # TRANSECT ID NUMBER 
-
-#  set transect numbers based on transect start times. When the dive bchanges between consecutive start times, transect number resets at 1 and then inrcreases sequentially from 1.
+#  set transect numbers based on transect start times. When the dive changes between consecutive start times, transect number resets at 1 and then increases sequentially from 1.
 
 transect_number = list()
-#print(transect_start)
-
 counter <- 1
 
 for (i in seq(1, (nrow(transect_start)))) { # for every row in the start times,
@@ -133,67 +122,53 @@ for (i in seq(1, (nrow(transect_start)))) { # for every row in the start times,
     }
 }
 
+# copy depth from row over to new column tpo use for name instead of transect_num
+
 transect_start$transect_num <- unlist(transect_number)
-print(transect_start)
+transect_end$transect_num <- transect_start$transect_num # duplicate the transect number labels to transect-end times
+transect_info <- arrange(rbind(transect_start,transect_end), date_time) # and merge with start times, sort by date_time
 
+transect_info$depth_ID <- NA
 
-# print(transect_pairs)
-# rep(1:(nrow(transect_times) / 2), each = 2, length.out = nrow(transect_times))
-# new <- rbind(transect_times$transect_numbers, transect_pairs)
-# print(new)
+for (i in 1:(nrow(transect_info))) {
+  transect_info$depth_ID[i] <- extract_numeric(transect_info$comment[i])
+}
 
-# 
-# transect_times$transect_number <- transect_numbers
- 
-#for (i in seq(1, nrow(transect_times), by=2)) {
-  # transect_times$transect_number[i] <- row_number(transect_times)
-  # transect_times$transect_number[i+1] <- row_number(transect_times)
-# }
-
-
-# counter <- 0
-# for (i in 1:nrow(annotation_clean)) {
-#   print(annotation_clean$dive_number[i])
-#   print(annotation_clean$dive_number[i-1])
-# }
-# 
-# for (i in 1:nrow(annotation_clean)) {
-#   if (annotation_clean$dive_number[i] == annotation_clean$dive_number[i-1]) { # this needs debugged
-#     annotation_clean$transect_number[i] <- counter + 1
-#   }
-#   else {
-#     counter <- 1
-#     filtered$transect_number[i] <- counter + 1
-#   }
-#   print(counter)
-# }
-
-
-relocate(filtered$transect_number, .after = filtered$dive_number)
-print(filtered)
-
+#print(transect_info)
 #-------------------------------------------------------------------------------
-
 # Filter for annotations falling within midwater transects
 
 filtered <- data.frame()
 
-for(i in 1:nrow(annotation_clean)){      # for each annotation
-  for (j in 1:nrow(transect_start)){     # check each transect start/end time 
+for(i in 1:nrow(annotation_clean)){                                               # for each annotation
+  for (j in 1:nrow(transect_start)){                                              # check each transect start/end time 
     
     ann_time<-ymd_hms(annotation_clean$date_time[i])
-    t_start<- ymd_hms(transect_start$date_time[j])    # set nicer var names & iterate thru annotations and transect times
+    t_start<- ymd_hms(transect_start$date_time[j])                                  # set nicer var names & iterate thru annotations and transect times
     t_end<- ymd_hms(transect_end$date_time[j])
     
-    if (ann_time > t_start && ann_time < t_end){    # if annotation time is within transect times
-      filtered <- rbind(filtered, (annotation_clean[i,]))  # append each annotation that falls under the if statement to the new df, filtered, and rename
+    if (ann_time > t_start && ann_time < t_end){                                 # if annotation time is within transect times
+      filtered <- rbind((annotation_clean[i,]), filtered)                         # append each annotation that falls under the if statement to the new df, filtered, and rename
     }
   }
 }
-
-
-
 #-------------------------------------------------------------------------------
+filtered$transect_num <- NA         
+filtered$depth_ID <- NA                                                                        # declare a new column in the annotations for transect # (so rbind doesn't freak out)
+annotations_with_transects <- arrange(rbind(filtered,transect_info), date_time)      # append the transect rows (full anns) with the full annotations
+print(annotations_with_transects)
+
+
+# copy transect numbers all the way down the annotation rows until it shifts
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # check for match between commented transect depth and actual measured depth
 
