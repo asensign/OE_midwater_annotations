@@ -172,143 +172,135 @@ clean_df <- clean_df1 %>% fill(transect_num)
 
 # print(clean_df)
 
-#-------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-#-------------------------------------------------------------------------------
-
-
-benthic_join<-dplyr::inner_join(annotation_clean, benthic_times, 
-                                dplyr::join_by("dive_number" == "dive_number"))
-
-benthic_annotations<- benthic_join |> 
-  dplyr::group_by(dive_number) |> 
-  dplyr::filter(date_time>=benthic_start & date_time<=benthic_end) |> 
-  dplyr::ungroup()
-View(benthic_annotations)
-
-
-
-#-------------------------------------------------------------------------------
-# List of file paths to each dive
-dive_summary_paths<-list.files(paste0(wd, "/dive_summaries"), 
-                               pattern = "[.]txt$", full.names = TRUE)
-
-# to avoid df size issues, loop through transect info df for EACh dive.
-
-print(dive_summary_paths)
-for (i in length(dive_summary_paths)) {
-  
-  each_dive<-dive_summary_paths[i]
-  print(each_dive)
-  # full dives``
-  #midwater_start_list<-purrr::map(dive_summary_paths, 
-  #                               \(x) import_midwater_start_post2020(x))
-  #midwater_end_list<-purrr::map(dive_summary_paths, 
-  #                              \(x) import_midwater_end_post2020(x))
-  
-  transect_start_list<-purrr::map(each_dive, 
-                                  \(x) import_midwater_transect_start_post2020(x))
-  transect_end_list<-purrr::map(each_dive, 
-                                \(x) import_midwater_transect_end_post2020(x))
-  # in case I need these later 
-  #transect_duration_list<-purrr::map(dive_summary_paths, 
-  #                                \(x) import_midwater_transect_duration_post2020(x))
-  transect_depth_list<-purrr::map(each_dive, 
-                                  \(x) import_midwater_transect_depth_post2020(x))
-  
-  #Collapse lists to vectors, add to dataframe
-  # need to figure out how to read dates in from text file as well - rn they are the current date
-  transect_start <- as.POSIXlt(unlist(transect_start_list), tz = "UTC", format = "%H:%M:%OS")
-  print(transect_start)
-  
-  transect_end <- as.POSIXlt(unlist(transect_end_list), tz = "UTC", format = "%H:%M:%OS")
-  print(transect_end)
-  
-  transect_depth <- unlist(transect_depth_list)
-  print(transect_depth)
-  
-  transect_n <- 1:length(transect_start)
-  print(transect_n)
-  
-  transect_df<-data.frame(transect_n, transect_start, transect_end, transect_depth) # does NOT separate by dive
-  print(transect_df)
-}
-
-
-
-#-------------------------------------------------------------------------------
-#Download dive summary text files for use in extracting the benthic portion of
-#the dive, and ROV tracks .csv files to calculate distance traveled metric.
-#Save to two new subdirectories within the existing expedition directory
-data_name_lower <- tolower(data_name)
-dir.create(paste0(wd,"/dive_summaries/"))
-dir.create(paste0(wd,"/ROV_tracks"))
-
-#This downloads available dive summary .txt files based on the dive name vector 
-#above and prints an error if one is missing (UCH dives do not have dive summary 
-#.txt files)
-dive_summary_file_QAQC(dive_names)
-
-#stop here and see if there are any missing dive summaries based on the output
-#of the above code; update dive_names and dive_number if needed or else the code 
-#below will be interrupted by a missing zip folder
-
-dive_ancillary_file_extraction(dive_names)
-
-#-------------------------------------------------------------------------------
-
-
-
-#transect_times<-data.frame(dive_number,transect_start,transect_end)
-
-#midwater_join<-dplyr::inner_join(annotation_clean, transect_times, 
-                                #  dplyr::join_by("dive_number" == "dive_number"))
-
-
-#transect_times1<-data.frame(dive_number,transect_start,transect_end)
-#transect_times2<- data.frame(dive_number,transect_start,transect_end)
-
-
-#-------------------------------------------------------------------------------
-#Joins the clean annotations dataframe to the benthic times dataframe 
-#and then filters the annotations data to only include the benthic portion of
-#each dive. This join also removes any dives with no corresponding dive summary
-#file (e.g. test dives, UCH dives, mid-water-only dives).
-
-benthic_join<-dplyr::inner_join(annotation_clean, benthic_times, 
-                               dplyr::join_by("dive_number" == "dive_number"))
-
-benthic_annotations<- benthic_join |> 
-  dplyr::group_by(dive_number) |> 
-  dplyr::filter(date_time>=benthic_start & date_time<=benthic_end) |> 
-  dplyr::ungroup()
-View(benthic_annotations)
-
-
-
-
 # write out all clean annotations
 dir.create(paste0(wd,"/exports/"))
-write.csv(annotation_clean, paste0(wd,"/exports/clean_annotations_all_", data_name, ".csv"),
-row.names = FALSE)
+write.csv(clean_df, paste0(wd,"/exports/clean_annotations_midwater_", data_name, ".csv"),row.names = FALSE)
 
-write.csv(midwater_annotations, paste0(wd, "/exports/midwater_annotations_", 
-                                      data_name, ".csv"), row.names = FALSE)
+#-------------------------------------------------------------------------------
 
-write.csv(midwater_times, paste0(wd,"/exports/midwater_times_", data_name, ".csv"),
-          row.names = FALSE)
+#-------------------------------------------------------------------------------
 
-
-
+# 
+# benthic_join<-dplyr::inner_join(annotation_clean, benthic_times, 
+#                                 dplyr::join_by("dive_number" == "dive_number"))
+# 
+# benthic_annotations<- benthic_join |> 
+#   dplyr::group_by(dive_number) |> 
+#   dplyr::filter(date_time>=benthic_start & date_time<=benthic_end) |> 
+#   dplyr::ungroup()
+# View(benthic_annotations)
+# 
+# 
+# 
+# #-------------------------------------------------------------------------------
+# # List of file paths to each dive
+# dive_summary_paths<-list.files(paste0(wd, "/dive_summaries"), 
+#                                pattern = "[.]txt$", full.names = TRUE)
+# 
+# # to avoid df size issues, loop through transect info df for EACh dive.
+# 
+# print(dive_summary_paths)
+# for (i in length(dive_summary_paths)) {
+#   
+#   each_dive<-dive_summary_paths[i]
+#   print(each_dive)
+#   # full dives``
+#   #midwater_start_list<-purrr::map(dive_summary_paths, 
+#   #                               \(x) import_midwater_start_post2020(x))
+#   #midwater_end_list<-purrr::map(dive_summary_paths, 
+#   #                              \(x) import_midwater_end_post2020(x))
+#   
+#   transect_start_list<-purrr::map(each_dive, 
+#                                   \(x) import_midwater_transect_start_post2020(x))
+#   transect_end_list<-purrr::map(each_dive, 
+#                                 \(x) import_midwater_transect_end_post2020(x))
+#   # in case I need these later 
+#   #transect_duration_list<-purrr::map(dive_summary_paths, 
+#   #                                \(x) import_midwater_transect_duration_post2020(x))
+#   transect_depth_list<-purrr::map(each_dive, 
+#                                   \(x) import_midwater_transect_depth_post2020(x))
+#   
+#   #Collapse lists to vectors, add to dataframe
+#   # need to figure out how to read dates in from text file as well - rn they are the current date
+#   transect_start <- as.POSIXlt(unlist(transect_start_list), tz = "UTC", format = "%H:%M:%OS")
+#   print(transect_start)
+#   
+#   transect_end <- as.POSIXlt(unlist(transect_end_list), tz = "UTC", format = "%H:%M:%OS")
+#   print(transect_end)
+#   
+#   transect_depth <- unlist(transect_depth_list)
+#   print(transect_depth)
+#   
+#   transect_n <- 1:length(transect_start)
+#   print(transect_n)
+#   
+#   transect_df<-data.frame(transect_n, transect_start, transect_end, transect_depth) # does NOT separate by dive
+#   print(transect_df)
+# }
+# 
+# 
+# 
+# #-------------------------------------------------------------------------------
+# #Download dive summary text files for use in extracting the benthic portion of
+# #the dive, and ROV tracks .csv files to calculate distance traveled metric.
+# #Save to two new subdirectories within the existing expedition directory
+# data_name_lower <- tolower(data_name)
+# dir.create(paste0(wd,"/dive_summaries/"))
+# dir.create(paste0(wd,"/ROV_tracks"))
+# 
+# #This downloads available dive summary .txt files based on the dive name vector 
+# #above and prints an error if one is missing (UCH dives do not have dive summary 
+# #.txt files)
+# dive_summary_file_QAQC(dive_names)
+# 
+# #stop here and see if there are any missing dive summaries based on the output
+# #of the above code; update dive_names and dive_number if needed or else the code 
+# #below will be interrupted by a missing zip folder
+# 
+# dive_ancillary_file_extraction(dive_names)
+# 
+# #-------------------------------------------------------------------------------
+# 
+# 
+# 
+# #transect_times<-data.frame(dive_number,transect_start,transect_end)
+# 
+# #midwater_join<-dplyr::inner_join(annotation_clean, transect_times, 
+#                                 #  dplyr::join_by("dive_number" == "dive_number"))
+# 
+# 
+# #transect_times1<-data.frame(dive_number,transect_start,transect_end)
+# #transect_times2<- data.frame(dive_number,transect_start,transect_end)
+# 
+# 
+# #-------------------------------------------------------------------------------
+# #Joins the clean annotations dataframe to the benthic times dataframe 
+# #and then filters the annotations data to only include the benthic portion of
+# #each dive. This join also removes any dives with no corresponding dive summary
+# #file (e.g. test dives, UCH dives, mid-water-only dives).
+# 
+# benthic_join<-dplyr::inner_join(annotation_clean, benthic_times, 
+#                                dplyr::join_by("dive_number" == "dive_number"))
+# 
+# benthic_annotations<- benthic_join |> 
+#   dplyr::group_by(dive_number) |> 
+#   dplyr::filter(date_time>=benthic_start & date_time<=benthic_end) |> 
+#   dplyr::ungroup()
+# View(benthic_annotations)
+# 
+# 
+# 
+# 
+# # write out all clean annotations
+# dir.create(paste0(wd,"/exports/"))
+# write.csv(annotation_clean, paste0(wd,"/exports/clean_annotations_all_", data_name, ".csv"),
+# row.names = FALSE)
+# 
+# write.csv(midwater_annotations, paste0(wd, "/exports/midwater_annotations_", 
+#                                       data_name, ".csv"), row.names = FALSE)
+# 
+# write.csv(midwater_times, paste0(wd,"/exports/midwater_times_", data_name, ".csv"),
+#           row.names = FALSE)
+# 
+# 
+# 
