@@ -19,21 +19,33 @@ function_names <- list.files(path = "C:/Users/Alexandra.Ensign/Documents/OE_midw
 lapply(function_names, source)
 #-------------------------------------------------------------------------------
 
-wd <- "C:/Users/Alexandra.Ensign/Documents/EX2107"
-setwd(wd)
+# wd <- "C:/Users/Alexandra.Ensign/Documents/EX2107"
+# setwd(wd)
 
 #set standard name to refer to your data, using the naming convention
 #"EX","expedition number", e.g.:
-data_name <- "EX2107"
+#data_name <- "EX2107"
+data_name <- "EX1806"
 
-#create vector of dive numbers for your dataset. The dive landing pages are a 
+#create vector of dive numbers for your dataset. 
 #dive_number<-c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
-dive_number<-c(3,13)
-
-#create a vector of character descriptors of dives, which will be used to 
-#download the dive summary text files
 #dive_names <- c("DIVE01", "DIVE02","DIVE03", "DIVE04", "DIVE05", "DIVE06", "DIVE07", "DIVE08", "DIVE09", "DIVE10", "DIVE11", "DIVE12", "DIVE13", "DIVE14", "DIVE15", "DIVE16", "DIVE17", "DIVE18", "DIVE19")
-dive_names <- c("DIVE03", "DIVE13")
+
+if (data_name == "EX1806") {
+  dive_number<-c(2,4,15)
+  dive_names <- c("DIVE02", "DIVE04", "DIVE15")
+} else if (data_name=="EX2107") {
+  dive_number<-c(3,13)
+  dive_names <- c("DIVE03", "DIVE13")
+} else if (data_name=="EX1903L2") {
+  dive_number<-c(2,6,8,9,14)
+  dive_names <- c("DIVE02", "DIVE06", "DIVE08", "DIVE09", "DIVE014")
+}
+
+#wd <- "C:/Users/Alexandra.Ensign/Documents/"
+wd <- paste0("C:/Users/Alexandra.Ensign/Documents/",data_name)
+print(wd)
+setwd(wd)
 #------------------------------------------------------------------------------
 
 #Read in SeaTube .csv annotation file(s) and apply clean_annotation function.
@@ -84,7 +96,25 @@ if (length(annotation_paths > 1)) {
 #str(annotation_clean)
 #View(annotation_clean)
 #-------------------------------------------------------------------------------
-# Pull commented start/end transect times from seatube csv 
+#Download dive summary text files for use in extracting the benthic portion of
+#the dive, and ROV tracks .csv files to calculate distance traveled metric.
+#Save to two new subdirectories within the existing expedition directory
+data_name_lower <- tolower(data_name)
+dir.create(paste0(wd,"/dive_summaries/"))
+dir.create(paste0(wd,"/ROV_tracks"))
+
+#This downloads available dive summary .txt files based on the dive name vector
+#above and prints an error if one is missing (UCH dives do not have dive summary
+#.txt files)
+dive_summary_file_QAQC(dive_names)
+
+#stop here and see if there are any missing dive summaries based on the output
+#of the above code; update dive_names and dive_number if needed or else the code
+#below will be interrupted by a missing zip folder
+
+dive_ancillary_file_extraction(dive_names)
+#-------------------------------------------------------------------------------
+
 transect_start<-filter(annotation_clean, (str_detect(comment, regex("start transect", ignore_case = T))))
 transect_end<-filter(annotation_clean, (str_detect(comment, regex("end transect", ignore_case = T))))
 
@@ -133,18 +163,32 @@ transect_info$depth_ID <- NA
 for (i in 1:(nrow(transect_info))) {
   transect_info$depth_ID[i] <- extract_numeric(transect_info$comment[i])
 }
+for (i in 1:(nrow(transect_start))) {
+  transect_start$depth_ID[i] <- extract_numeric(transect_start$comment[i])
+}
+for (i in 1:(nrow(transect_end))) {
+  transect_end$depth_ID[i] <- extract_numeric(transect_end$comment[i])
+}
+#print(transect_start)
+#print(transect_end)
 #print(transect_info)
+
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # check for match between commented transect depth and actual measured depth
 # tolerance of 3 m
-for (i in 1:nrow(clean_df)) {
+for (i in 1:nrow(transect_info)) {
   upper_bound <- as.numeric(transect_info$depth_ID[i]) + 3
   lower_bound <- as.numeric(transect_info$depth_ID[i]) - 3
   if (isTRUE(transect_info$depth[i] > upper_bound | transect_info$depth[i] < lower_bound)) {
     print('Measured depth +/-3 m outside of transect depth')
   }
 }
+# then write out midwater transect info for ROV things
+#write.csv(transect_info, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
+write.csv(transect_start, paste0(wd,"/exports/midwater_transect_start_times_", data_name, ".csv"),row.names = FALSE)
+write.csv(transect_end, paste0(wd,"/exports/midwater_transect_end_times_", data_name, ".csv"),row.names = FALSE)
+
 #-------------------------------------------------------------------------------
 # Filter for annotations falling within midwater transects
 
@@ -167,14 +211,13 @@ filtered$transect_num <- NA
 filtered$depth_ID <- NA                                                                        # declare a new column in the annotations for transect # (so rbind doesn't freak out)
 annotations_with_transects <- arrange(rbind(filtered,transect_info), date_time)      # append the transect rows (full anns) with the full annotations
 
-clean_df1 <- annotations_with_transects %>% fill(depth_ID)
-clean_df <- clean_df1 %>% fill(transect_num)
-
-# print(clean_df)
+clean_df <- annotations_with_transects %>% 
+  fill(depth_ID) %>% 
+  fill(transect_num)
 
 # write out all clean annotations
 dir.create(paste0(wd,"/exports/"))
-write.csv(clean_df, paste0(wd,"/exports/clean_annotations_midwater_", data_name, ".csv"),row.names = FALSE)
+write.csv(clean_df, paste0(wd,"/exports/midwater_annotations_", data_name, ".csv"),row.names = FALSE)
 
 #-------------------------------------------------------------------------------
 
