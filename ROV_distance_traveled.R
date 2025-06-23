@@ -17,8 +17,11 @@ lapply(function_names, source)
 #-------------------------------------------------------------------------------
 #set up steps
 #set file paths and data names that correspond to file names
-ROV_filepath <- "C:/Users/Alexandra.Ensign/Documents/midwater_R_files/EX2107/ROV_tracks/"
-expedition <- "EX2107"
+# expedition <- "EX2107"
+expedition <- "EX1806"
+# expedition <- "EX1903L2"
+ROV_filepath <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/",expedition,"/ROV_tracks/")
+
 
 #location of the benthic times data frame that is an output of the 
 #Benthic_annotations_cleaning script. This contains start/end times for all dives

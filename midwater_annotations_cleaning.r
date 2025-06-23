@@ -24,9 +24,9 @@ lapply(function_names, source)
 
 #set standard name to refer to your data, using the naming convention
 #"EX","expedition number", e.g.:
-data_name <- "EX2107"
-#data_name <- "EX1806"
-# data_name <- "EX1903L2" # this one takes about 35 minutes
+# data_name <- "EX2107"
+# data_name <- "EX1806"
+data_name <- "EX1903L2" # this one takes about 35 minutes
 
 #create vector of dive numbers for your dataset. 
 #dive_number<-c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
@@ -122,6 +122,7 @@ transect_end<-filter(annotation_clean, (str_detect(comment, regex("end transect"
 #-------------------------------------------------------------------------------
 # TRANSECT ID NUMBER 
 #  set transect numbers based on transect start times. When the dive changes between consecutive start times, transect number resets at 1 and then increases sequentially from 1.
+# this may not be necessary anymore rip
 
 transect_number = list()
 counter <- 1
@@ -155,26 +156,40 @@ for (i in seq(1, (nrow(transect_start)))) { # for every row in the start times,
 
 transect_start$transect_num <- unlist(transect_number)
 transect_end$transect_num <- transect_start$transect_num # duplicate the transect number labels to transect-end times
-transect_info <- arrange(rbind(transect_start,transect_end), date_time) # and merge with start times, sort by date_time
+# transect_info <- arrange(rbind(transect_start,transect_end), date_time) # and merge with start times, sort by date_time
 # print(transect_info)
+#-------------------------------------------------------------------------------
 
-transect_info$depth_ID <- NA
 
-for (i in 1:(nrow(transect_info))) {
-  transect_info$depth_ID[i] <- extract_numeric(transect_info$comment[i])
+# add label based on depth to each transect (just filtering out the depth from the comment and giving it a tidy column)
+transect_start$depth_ID <- NA
+transect_end$depth_ID <- NA
+
+for (i in 1:(nrow(transect_start))) {
+  transect_start$depth_ID[i] <- parse_number(transect_start$comment[i])
 }
+for (i in 1:(nrow(transect_end))) {
+  transect_end$depth_ID[i] <- parse_number(transect_end$comment[i])
+}
+#-------------------------------------------------------------------------------
 
-# print(transect_info)
 
 # create a reformatted dataframe that has start, end, and depth as columns to use in ROV distance traveled script
-# this assumes they are all still in order based on date time from above
-# print(transect_info)
-times_reformat<- select(transect_info, dive_number)
-times_reformat$depth_ID <- transect_info$depth_ID
+
+times_reformat<- data.frame(matrix(ncol=4, nrow=nrow(transect_start)))
+col_names= c('dive_number', 'depth_ID', 'start_time', 'end_time')
+colnames(times_reformat) <- col_names
+# print(times_reformat)
+
+times_reformat$dive_number <- transect_start$dive_number
+times_reformat$depth_ID <- transect_start$depth_ID
 times_reformat$start_time <- transect_start$date_time
 times_reformat$end_time <- transect_end$date_time
-print(times_reformat)
-print(transect_info)
+
+print(times_reformat) # make sure the dates, times, and dives are in order :D
+
+write.csv(transect_info, paste0(wd,"/exports/midwater_transect_times_as-annotations_", data_name, ".csv"),row.names = FALSE)
+write.csv(times_reformat, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -220,8 +235,7 @@ clean_df <- annotations_with_transects %>%
 # write out all clean annotations
 dir.create(paste0(wd,"/exports/"))
 write.csv(clean_df, paste0(wd,"/exports/midwater_annotations_", data_name, ".csv"),row.names = FALSE)
-write.csv(transect_info, paste0(wd,"/exports/midwater_transect_times_as-annotations_", data_name, ".csv"),row.names = FALSE)
-write.csv(times_reformat, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
+
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
