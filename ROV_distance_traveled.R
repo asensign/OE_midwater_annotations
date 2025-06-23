@@ -21,6 +21,9 @@ lapply(function_names, source)
 expedition <- "EX1806"
 # expedition <- "EX1903L2"
 ROV_filepath <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/",expedition,"/ROV_tracks/")
+wd <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/",expedition)
+print(wd)
+setwd(wd)
 
 
 #location of the benthic times data frame that is an output of the 
@@ -137,31 +140,34 @@ write.csv(ROV_distance_df, paste0(wd,"/exports/", expedition,"_ROV_distance.csv"
 #-------------------------------------------------------------------------------
 #Visualize outlier detection results
 
-# ggplot2::ggplot(ROV_SMA_df, ggplot2::aes(x = ROV_SMA_window, y = ROV_SMA_distance)) +
-#   ggplot2::geom_point() +
-#   ggplot2::labs(x = "Number of ROV position points used in simple moving average smooth",
-#        y = "ROV distance traveled (m)",
-#        title = "Change in predicted ROV distance traveled with increased smoothing",
-#        subtitle = expedition) +
-#   ggplot2::geom_vline(xintercept = ROV_distance_traveled, color = "#FF6C57", linewidth = 1.5) +
-#   ggplot2::theme_bw()
+ ggplot2::ggplot(ROV_SMA_df, ggplot2::aes(x = ROV_SMA_window, y = ROV_SMA_distance)) +
+   ggplot2::geom_point() +
+   ggplot2::labs(x = "Number of ROV position points used in simple moving average smooth",
+        y = "ROV distance traveled (m)",
+        title = "Change in predicted ROV distance traveled with increased smoothing",
+        subtitle = expedition) +
+   ggplot2::geom_vline(xintercept = ROV_distance_traveled, color = "#FF6C57", linewidth = 1.5) +
+   ggplot2::theme_bw()
 
 #------------------------------------------------------------------------------
 #Visualize raw and smoothed track lines
-
-# ROV_smooth_predicted <- ROV_benthic |>
-#   dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = ROV_threshold$ROV_SMA_window),
-#                 Lon_SMA = TTR::SMA(longitude_dd, n = ROV_threshold$ROV_SMA_window),
-#                 Depth_SMA = TTR::SMA(depth_m, n = ROV_threshold$ROV_SMA_window))
+ROV_smooth_predicted <- ROV_benthic |>
+  dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd),
+                Lon_SMA = TTR::SMA(longitude_dd),
+                Depth_SMA = TTR::SMA(depth_m))
+ # ROV_smooth_predicted <- ROV_benthic |>
+ #   dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = ROV_threshold$ROV_SMA_window),
+ #                 Lon_SMA = TTR::SMA(longitude_dd, n = ROV_threshold$ROV_SMA_window),
+ #                 Depth_SMA = TTR::SMA(depth_m, n = ROV_threshold$ROV_SMA_window))
+ 
+ #raw data
+ ROV_benthic |>
+   leaflet::leaflet() |>
+   leaflet::addTiles() |>
+   leaflet::addPolylines(lng = ~longitude_dd, lat = ~latitude_dd)
 # 
-# #raw data
-# ROV_benthic |>
-#   leaflet::leaflet() |>
-#   leaflet::addTiles() |>
-#   leaflet::addPolylines(lng = ~longitude_dd, lat = ~latitude_dd)
-# 
-# #smoothed data
-# ROV_smooth_predicted |>
-#   leaflet::leaflet() |>
-#   leaflet::addTiles() |>
-#   leaflet::addPolylines(lng = ~Lon_SMA, lat = ~Lat_SMA)
+ #smoothed data
+ ROV_smooth_predicted |>
+   leaflet::leaflet() |>
+   leaflet::addTiles() |>
+   leaflet::addPolylines(lng = ~Lon_SMA, lat = ~Lat_SMA)

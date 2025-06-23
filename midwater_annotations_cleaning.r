@@ -24,9 +24,9 @@ lapply(function_names, source)
 
 #set standard name to refer to your data, using the naming convention
 #"EX","expedition number", e.g.:
-# data_name <- "EX2107"
+data_name <- "EX2107"
 # data_name <- "EX1806"
-data_name <- "EX1903L2" # this one takes about 35 minutes
+# data_name <- "EX1903L2" # this one takes about 35 minutes
 
 #create vector of dive numbers for your dataset. 
 #dive_number<-c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
@@ -43,6 +43,8 @@ if (data_name == "EX1806") {
   dive_names <- c("DIVE02", "DIVE06", "DIVE08", "DIVE09", "DIVE14")
 }
 
+# print(data_name)
+# print(dive_number)
 #wd <- "C:/Users/Alexandra.Ensign/Documents/"
 wd <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/",data_name)
 print(wd)
@@ -118,7 +120,7 @@ dive_ancillary_file_extraction(dive_names)
 
 transect_start<-filter(annotation_clean, (str_detect(comment, regex("start transect", ignore_case = T))))
 transect_end<-filter(annotation_clean, (str_detect(comment, regex("end transect", ignore_case = T))))
-
+# print(transect_start)
 #-------------------------------------------------------------------------------
 # TRANSECT ID NUMBER 
 #  set transect numbers based on transect start times. When the dive changes between consecutive start times, transect number resets at 1 and then increases sequentially from 1.
@@ -156,7 +158,8 @@ for (i in seq(1, (nrow(transect_start)))) { # for every row in the start times,
 
 transect_start$transect_num <- unlist(transect_number)
 transect_end$transect_num <- transect_start$transect_num # duplicate the transect number labels to transect-end times
-# transect_info <- arrange(rbind(transect_start,transect_end), date_time) # and merge with start times, sort by date_time
+
+transect_info <- arrange(rbind(transect_start,transect_end), date_time) # and merge with start times, sort by date_time
 # print(transect_info)
 #-------------------------------------------------------------------------------
 
@@ -171,6 +174,9 @@ for (i in 1:(nrow(transect_start))) {
 for (i in 1:(nrow(transect_end))) {
   transect_end$depth_ID[i] <- parse_number(transect_end$comment[i])
 }
+
+print(transect_start)
+print(transect_end)
 #-------------------------------------------------------------------------------
 
 
