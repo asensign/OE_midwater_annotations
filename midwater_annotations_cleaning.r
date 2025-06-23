@@ -153,11 +153,6 @@ for (i in seq(1, (nrow(transect_start)))) { # for every row in the start times,
     }
 }
 
-# copy depth from row over to new column tpo use for name instead of transect_num
-# 
-# print(transect_start)
-# print(transect_end)
-
 transect_start$transect_num <- unlist(transect_number)
 transect_end$transect_num <- transect_start$transect_num # duplicate the transect number labels to transect-end times
 transect_info <- arrange(rbind(transect_start,transect_end), date_time) # and merge with start times, sort by date_time
@@ -168,15 +163,19 @@ transect_info$depth_ID <- NA
 for (i in 1:(nrow(transect_info))) {
   transect_info$depth_ID[i] <- extract_numeric(transect_info$comment[i])
 }
-# for (i in 1:(nrow(transect_start))) {
-#   transect_start$depth_ID[i] <- extract_numeric(transect_start$comment[i])
-# }
-# for (i in 1:(nrow(transect_end))) {
-#   transect_end$depth_ID[i] <- extract_numeric(transect_end$comment[i])
-# }
-# print(transect_start)
-# print(transect_end)
+
 # print(transect_info)
+
+# create a reformatted dataframe that has start, end, and depth as columns to use in ROV distance traveled script
+# this assumes they are all still in order based on date time from above
+# print(transect_info)
+times_reformat<- select(transect_info, dive_number)
+times_reformat$depth_ID <- transect_info$depth_ID
+times_reformat$start_time <- transect_start$date_time
+times_reformat$end_time <- transect_end$date_time
+print(times_reformat)
+print(transect_info)
+
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -221,7 +220,8 @@ clean_df <- annotations_with_transects %>%
 # write out all clean annotations
 dir.create(paste0(wd,"/exports/"))
 write.csv(clean_df, paste0(wd,"/exports/midwater_annotations_", data_name, ".csv"),row.names = FALSE)
-write.csv(transect_info, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
+write.csv(transect_info, paste0(wd,"/exports/midwater_transect_times_as-annotations_", data_name, ".csv"),row.names = FALSE)
+write.csv(times_reformat, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------

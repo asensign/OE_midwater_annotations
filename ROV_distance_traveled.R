@@ -28,19 +28,13 @@ transect_times_wd <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_file
 
 #import midwater transect times 
 transect_times <- read.csv(paste0(transect_times_wd,"midwater_transect_times_",expedition,".csv"), header = TRUE)
-transect_times$date_time <- lubridate::ymd_hms(transect_times$date_time)  
+transect_times$start_time <- lubridate::ymd_hms(transect_times$start_time)  
+transect_times$end_time <- lubridate::ymd_hms(transect_times$end_time)  
 
-# select for start/end to use below
-transect_start<-filter(transect_times, (str_detect(comment, regex("start transect", ignore_case = T))))
-transect_end<-filter(transect_times, (str_detect(comment, regex("end transect", ignore_case = T))))
-
-transect_start$date_time<- lubridate::ymd_hms(transect_start$date_time) 
-transect_end$date_time<- lubridate::ymd_hms(transect_end$date_time) 
 
 #check
-# print(transect_times$date_time)
-#print(transect_start)
- # print(transect_end)
+# print(transect_times$start_time)
+# print(transect_times$end_time)
 
 #uses names of ROV track files in the expedition folder to generate the vector
 #of dives to use in the loop below
@@ -76,8 +70,11 @@ ROV_join <- dplyr::left_join(ROV_clean_df, transect_times,
 #   dplyr::filter(UTC>=benthic_start & UTC<=benthic_end) |> 
 #   dplyr::filter(!is.na(latitude_dd))
 
+
+# not sure if this will work since it's not indexing by dive number [i] (form what I can tell..)
+
 ROV_benthic <- ROV_join |> 
-  dplyr::filter(UTC>=transect_start$date_time & UTC<=transect_end$date_time) |> 
+  dplyr::filter(UTC>=start_time & UTC<=end_time) |> 
   dplyr::filter(!is.na(latitude_dd))
 
 
