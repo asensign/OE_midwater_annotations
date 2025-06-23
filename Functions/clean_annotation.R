@@ -7,7 +7,7 @@
 #information useful to future data users.
 
 clean_annotation <- function(x) { 
-  has_count <- c("EX1803","EX1811","EX1903L2","EX1905L2","EX1907","EX2104")
+  has_count <- c("EX1803","EX1811","EX1903L2","EX1905L2","EX1907","EX2104", "EX1806") # ASE added 1806
   no_count <- c("EX1711","EX2103","EX2107","EX2201","EX2205","EX2206")
   
   if(data_name %in% has_count) {

@@ -14,7 +14,7 @@ if(!require('stringr'))install.packages('stringr'); library('stringr')
 #need to manually set the file path for the functions folder within your local repository
 # ASE mac function_names <- list.files(path = "/Users/alexandraensign/Hollings_remote/OER_annotations_reporting-main/Functions/midwater",
                              #pattern = "[.]R$", full.names = TRUE)
-function_names <- list.files(path = "C:/Users/Alexandra.Ensign/Documents/OE_midwater_annotations/Functions",
+function_names <- list.files(path = "C:/Users/Alexandra.Ensign/Documents/GitHub/OE_midwater_annotations/Functions",
                              pattern = "[.]R$", full.names = TRUE)
 lapply(function_names, source)
 #-------------------------------------------------------------------------------
@@ -24,8 +24,9 @@ lapply(function_names, source)
 
 #set standard name to refer to your data, using the naming convention
 #"EX","expedition number", e.g.:
-#data_name <- "EX2107"
-data_name <- "EX1806"
+data_name <- "EX2107"
+#data_name <- "EX1806"
+# data_name <- "EX1903L2" # this one takes about 35 minutes
 
 #create vector of dive numbers for your dataset. 
 #dive_number<-c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
@@ -39,11 +40,11 @@ if (data_name == "EX1806") {
   dive_names <- c("DIVE03", "DIVE13")
 } else if (data_name=="EX1903L2") {
   dive_number<-c(2,6,8,9,14)
-  dive_names <- c("DIVE02", "DIVE06", "DIVE08", "DIVE09", "DIVE014")
+  dive_names <- c("DIVE02", "DIVE06", "DIVE08", "DIVE09", "DIVE14")
 }
 
 #wd <- "C:/Users/Alexandra.Ensign/Documents/"
-wd <- paste0("C:/Users/Alexandra.Ensign/Documents/",data_name)
+wd <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/",data_name)
 print(wd)
 setwd(wd)
 #------------------------------------------------------------------------------
@@ -153,25 +154,29 @@ for (i in seq(1, (nrow(transect_start)))) { # for every row in the start times,
 }
 
 # copy depth from row over to new column tpo use for name instead of transect_num
+# 
+# print(transect_start)
+# print(transect_end)
 
 transect_start$transect_num <- unlist(transect_number)
 transect_end$transect_num <- transect_start$transect_num # duplicate the transect number labels to transect-end times
 transect_info <- arrange(rbind(transect_start,transect_end), date_time) # and merge with start times, sort by date_time
+# print(transect_info)
 
 transect_info$depth_ID <- NA
 
 for (i in 1:(nrow(transect_info))) {
   transect_info$depth_ID[i] <- extract_numeric(transect_info$comment[i])
 }
-for (i in 1:(nrow(transect_start))) {
-  transect_start$depth_ID[i] <- extract_numeric(transect_start$comment[i])
-}
-for (i in 1:(nrow(transect_end))) {
-  transect_end$depth_ID[i] <- extract_numeric(transect_end$comment[i])
-}
-#print(transect_start)
-#print(transect_end)
-#print(transect_info)
+# for (i in 1:(nrow(transect_start))) {
+#   transect_start$depth_ID[i] <- extract_numeric(transect_start$comment[i])
+# }
+# for (i in 1:(nrow(transect_end))) {
+#   transect_end$depth_ID[i] <- extract_numeric(transect_end$comment[i])
+# }
+# print(transect_start)
+# print(transect_end)
+# print(transect_info)
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -184,15 +189,13 @@ for (i in 1:nrow(transect_info)) {
     print('Measured depth +/-3 m outside of transect depth')
   }
 }
-# then write out midwater transect info for ROV things
-#write.csv(transect_info, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
-write.csv(transect_start, paste0(wd,"/exports/midwater_transect_start_times_", data_name, ".csv"),row.names = FALSE)
-write.csv(transect_end, paste0(wd,"/exports/midwater_transect_end_times_", data_name, ".csv"),row.names = FALSE)
-
+# this gets written out into csv format below
 #-------------------------------------------------------------------------------
 # Filter for annotations falling within midwater transects
 
 filtered <- data.frame()
+
+print(nrow(annotation_clean))
 
 for(i in 1:nrow(annotation_clean)){                                               # for each annotation
   for (j in 1:nrow(transect_start)){                                              # check each transect start/end time 
@@ -218,7 +221,7 @@ clean_df <- annotations_with_transects %>%
 # write out all clean annotations
 dir.create(paste0(wd,"/exports/"))
 write.csv(clean_df, paste0(wd,"/exports/midwater_annotations_", data_name, ".csv"),row.names = FALSE)
-
+write.csv(transect_info, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------

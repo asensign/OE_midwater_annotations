@@ -10,36 +10,37 @@ if(!require('ggplot2'))install.packages('ggplot2')
 #------------------------------------------------------------------------------
 #source functions
 #need to manually set the file path for the functions folder within your local repository
-function_names <- list.files(path = "C:/Users/Alexandra.Ensign/Documents/OE_midwater_annotations/Functions", 
+function_names <- list.files(path = "C:/Users/Alexandra.Ensign/Documents/GitHub/OE_midwater_annotations/Functions", 
                              pattern = "[.]R$", full.names = TRUE)
 lapply(function_names, source)
 
 #-------------------------------------------------------------------------------
 #set up steps
 #set file paths and data names that correspond to file names
-ROV_filepath <- "C:/Users/Alexandra.Ensign/Documents/EX2107/ROV_tracks/"
+ROV_filepath <- "C:/Users/Alexandra.Ensign/Documents/midwater_R_files/EX2107/ROV_tracks/"
 expedition <- "EX2107"
 
 #location of the benthic times data frame that is an output of the 
 #Benthic_annotations_cleaning script. This contains start/end times for all dives
 #in an expedition so only needs to be imported once.
-transect_times_wd <- paste0("C:/Users/Alexandra.Ensign/Documents/", 
+transect_times_wd <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/", 
                            expedition, "/exports/")
 
-#import midwater transect times as 2 data frames
-transect_starts <- read.csv(paste0(transect_times_wd,"midwater_transect_start_times_",expedition,".csv"), header = TRUE)
-transect_ends <- read.csv(paste0(transect_times_wd,"midwater_transect_end_times_",expedition,".csv"), header = TRUE)
+#import midwater transect times 
+transect_times <- read.csv(paste0(transect_times_wd,"midwater_transect_times_",expedition,".csv"), header = TRUE)
+transect_times$date_time <- lubridate::ymd_hms(transect_times$date_time)  
 
-transect_start_times <- select(transect_starts, date_time, dive_number, depth_ID)
-transect_end_times <- select(transect_ends, date_time, dive_number, depth_ID)
+# select for start/end to use below
+transect_start<-filter(transect_times, (str_detect(comment, regex("start transect", ignore_case = T))))
+transect_end<-filter(transect_times, (str_detect(comment, regex("end transect", ignore_case = T))))
 
-transect_start_times$date_time <- lubridate::ymd_hms(transect_start_times$date_time)  
-transect_end_times$date_time <- lubridate::ymd_hms(transect_end_times$date_time)
+transect_start$date_time<- lubridate::ymd_hms(transect_start$date_time) 
+transect_end$date_time<- lubridate::ymd_hms(transect_end$date_time) 
 
-#str(transect_start_times) #check to make sure these are the right times for your expedition
-#str(transect_end_times)
-
-
+#check
+# print(transect_times$date_time)
+#print(transect_start)
+ # print(transect_end)
 
 #uses names of ROV track files in the expedition folder to generate the vector
 #of dives to use in the loop below
@@ -52,6 +53,10 @@ ROV_distance_traveled_vec <- c() #this will become the vector of distances
 #please note processing time is approximately 8 minutes PER DIVE on a standard
 #laptop for expeditions post-2020
 
+# test indexing for transect times
+# print(transect_start_times$date_time[1])
+# print(transect_end_times$date_time[1]) # works. prints first date_time
+
 for(i in ROV_dive_numbers){
 #import
 ROV_import_df <- ROV_import(paste0(ROV_filepath,expedition,"_DIVE",i,"_ROVtrack.csv"))
@@ -62,7 +67,7 @@ ROV_clean_df <- ROV_clean(ROV_import_df)
 #join with benthic times
 # ROV_join <- dplyr::left_join(ROV_clean_df, benthic_times,
 #                                   dplyr::join_by("dive_number" == "dive_number"))
-ROV_join <- dplyr::left_join(ROV_clean_df, transect_start_times, transect_end_times,
+ROV_join <- dplyr::left_join(ROV_clean_df, transect_times,
                              dplyr::join_by("dive_number" == "dive_number"))
 
 
@@ -71,9 +76,8 @@ ROV_join <- dplyr::left_join(ROV_clean_df, transect_start_times, transect_end_ti
 #   dplyr::filter(UTC>=benthic_start & UTC<=benthic_end) |> 
 #   dplyr::filter(!is.na(latitude_dd))
 
-###### Test for just one transect before putting it in a loop
 ROV_benthic <- ROV_join |> 
-  dplyr::filter(UTC>=transect_start_times$date_time[1] & UTC<=transect_end_times$date_time[1]) |> 
+  dplyr::filter(UTC>=transect_start$date_time & UTC<=transect_end$date_time) |> 
   dplyr::filter(!is.na(latitude_dd))
 
 
