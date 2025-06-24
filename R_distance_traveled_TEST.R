@@ -40,7 +40,7 @@ ROV_transects <- data.frame()
 
 for(m in 1:nrow(ROV_clean_df)){                                             
   # for (n in 1:nrow(transect_times)){                                              
-  for (n in 1:1){  
+  for (n in 1:1){  # SET FOR ONLY ONE TRANSECT rn
     ROV_time<-ROV_clean_df$unix_time[m]
     t_start<- transect_times$start_unix[n]                                 
     t_end<- transect_times$end_unix[n]
@@ -50,7 +50,7 @@ for(m in 1:nrow(ROV_clean_df)){
     }
   }
 }
-# View(ROV_transects) #  worked to here
+# View(ROV_transects) #  worked to here and filtered the ROV data to fall within the first transect
 
 print(transect_times)
 # Trying to join the transect_times df to the ROV_clean_df by unix time
