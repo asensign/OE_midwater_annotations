@@ -37,6 +37,17 @@ transect_times <- read.csv(paste0(transect_times_wd,"midwater_transect_times_",e
 transect_times$start_time <- lubridate::ymd_hms(transect_times$start_time)  
 transect_times$end_time <- lubridate::ymd_hms(transect_times$end_time)  
 
+times_reformat<- data.frame(matrix(ncol=4))
+col_names= c('dive_number', 'depth_ID', 'start_time', 'end_time')
+colnames(times_reformat) <- col_names
+# print(times_reformat)
+
+times_reformat$dive_number <- transect_start$dive_number
+times_reformat$depth_ID <- transect_start$depth_ID
+times_reformat$start_time <- transect_start$date_time
+times_reformat$end_time <- transect_end$date_time
+
+print(times_reformat)
 
 #check
 # print(transect_times$start_time)
@@ -57,7 +68,8 @@ ROV_distance_traveled_vec <- c() #this will become the vector of distances
 # print(transect_start_times$date_time[1])
 # print(transect_end_times$date_time[1]) # works. prints first date_time
 
-for(i in ROV_dive_numbers){
+# for(i in ROV_dive_numbers){
+i = 3
 #import
 ROV_import_df <- ROV_import(paste0(ROV_filepath,expedition,"_DIVE",i,"_ROVtrack.csv"))
 
@@ -81,20 +93,21 @@ ROV_join <- dplyr::left_join(ROV_clean_df, transect_times,
 
 ROV_benthic <- ROV_join |> 
   dplyr::filter(UTC>=start_time & UTC<=end_time) |> 
-  dplyr::filter(!is.na(latitude_dd))
+  dplyr::filter(!is.na(latitude_dd)) # keep an eye on this - works better for larger datasets
 
 
 #-------------------------------------------------------------------------------
 #Smoothing
 #iterate generation of smooths across full dataset, calculate distance traveled 
 #for each smooth, save into vector
-ROV_SMA_window <- seq(from = 1, to = nrow(ROV_benthic), by = 100)
+# creating distance vs. points smoothing plot
+ROV_SMA_window <- seq(from = 1, to = nrow(ROV_benthic), by = 100) # by 100 is arbitrary !
 ROV_SMA_distance <- c()
 
 for(j in ROV_SMA_window){
   ROV_smooth <- ROV_benthic |> 
-    dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = j),
-                  Lon_SMA = TTR::SMA(longitude_dd, n = j),
+    dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = j), # ttr is pkg, sma is simple moving avg
+                  Lon_SMA = TTR::SMA(longitude_dd, n = j), # smoothes lat/lon/depth cols
                   Depth_SMA = TTR::SMA(depth_m, n = j))
   ROV_distance_smooth <- ROV_distance(ROV_smooth, lat = Lat_SMA, long = Lon_SMA)
   ROV_distance_m <- sum(ROV_distance_smooth$distance_3D_m, na.rm = TRUE)
@@ -119,7 +132,7 @@ ROV_SMA_df_outliers <- as.data.frame(MadMed_out_dist[[3]])
 colnames(ROV_SMA_df_outliers) = c("distance")
 summary(ROV_SMA_df_outliers) #visual check
 
-outlier_threshold <- ROV_SMA_df |> 
+outlier_threshold <- ROV_SMA_df |> # what is the point where you have the first non-outlier
   dplyr::filter(!Distance_diff %in% ROV_SMA_df_outliers$distance) |> 
   dplyr::first()
 
@@ -128,7 +141,7 @@ ROV_distance_traveled <- outlier_threshold$ROV_SMA_distance
 ROV_distance_traveled_vec <- c(ROV_distance_traveled_vec, ROV_distance_traveled)
 
 print(paste0("Dive",i," completed"))
-}
+# }
 
 ROV_distance_df <- data.frame(expedition = expedition, 
                               dive_number = as.numeric(ROV_dive_numbers), 
@@ -151,23 +164,23 @@ write.csv(ROV_distance_df, paste0(wd,"/exports/", expedition,"_ROV_distance.csv"
 
 #------------------------------------------------------------------------------
 #Visualize raw and smoothed track lines
-ROV_smooth_predicted <- ROV_benthic |>
-  dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd),
-                Lon_SMA = TTR::SMA(longitude_dd),
-                Depth_SMA = TTR::SMA(depth_m))
+# ROV_smooth_predicted <- ROV_benthic |>
+#   dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd),
+#                 Lon_SMA = TTR::SMA(longitude_dd),
+#                 Depth_SMA = TTR::SMA(depth_m))
  # ROV_smooth_predicted <- ROV_benthic |>
  #   dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = ROV_threshold$ROV_SMA_window),
  #                 Lon_SMA = TTR::SMA(longitude_dd, n = ROV_threshold$ROV_SMA_window),
  #                 Depth_SMA = TTR::SMA(depth_m, n = ROV_threshold$ROV_SMA_window))
  
- #raw data
- ROV_benthic |>
-   leaflet::leaflet() |>
-   leaflet::addTiles() |>
-   leaflet::addPolylines(lng = ~longitude_dd, lat = ~latitude_dd)
-# 
- #smoothed data
- ROV_smooth_predicted |>
-   leaflet::leaflet() |>
-   leaflet::addTiles() |>
-   leaflet::addPolylines(lng = ~Lon_SMA, lat = ~Lat_SMA)
+#  #raw data
+#  ROV_benthic |>
+#    leaflet::leaflet() |>
+#    leaflet::addTiles() |>
+#    leaflet::addPolylines(lng = ~longitude_dd, lat = ~latitude_dd)
+# # 
+#  #smoothed data
+#  ROV_smooth_predicted |>
+#    leaflet::leaflet() |>
+#    leaflet::addTiles() |>
+#    leaflet::addPolylines(lng = ~Lon_SMA, lat = ~Lat_SMA)
