@@ -23,9 +23,16 @@ wd <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/",expedition)
 setwd(wd)
 transect_times_wd <- paste0("C:/Users/Alexandra.Ensign/Documents/midwater_R_files/", 
                             expedition, "/exports/")
+
+ROV_dive_numbers <- list.files(path = ROV_filepath, pattern = "[.]csv$", full.names = TRUE)
+ROV_dive_numbers <- sapply(ROV_dive_numbers, ROV_dive_number_extract, USE.NAMES = FALSE)
+
+ROV_distance_traveled_vec <- c() #this will become the vector of distances
 #-------------------------------------------------------------------------------
 transect_times <- read.csv(paste0(transect_times_wd,"midwater_transect_times_",expedition,".csv"), header = TRUE)
-print(transect_times)
+transect_times$start_UTC <-as.POSIXct(transect_times$start_UTC, tz = "UTC")
+transect_times$end_UTC<-as.POSIXct(transect_times$end_UTC, tz = "UTC")
+# print(transect_times)
 
 # dive number -- eventually this will be a loop (START IT HERE)
 # this is going to drive me insane later
@@ -35,14 +42,14 @@ ii='2'
 
 # reads in rov stuff
 ROV_import_df <- ROV_import(paste0(ROV_filepath,expedition,"_DIVE",i,"_ROVtrack.csv"))
+# clean ROV df
 ROV_clean_df <- ROV_clean(ROV_import_df)
-# print(ROV_clean_df)
+#-------------------------------------------------------------------------------
 
-ROV_transects <- data.frame()
-
-# filter for ROV times (unix) within transect times (also unix)
+# filter ROV_clean_df for only times falling within transects (both unix now) (13 digits, but only 10 show - be careful)
 
 #only do one dive at a time from transect_times (they're lumped together by EX)
+ROV_transects <- data.frame()
 transect_times <- filter(transect_times, dive_number==sprintf("%s",ii))
 
 for(m in 1:nrow(ROV_clean_df)){                                             
@@ -57,61 +64,79 @@ for(m in 1:nrow(ROV_clean_df)){
     }
   }
 }
-# View(ROV_transects) #  worked to here
-print(transect_times)
-print(transect_times$start_unix[1])
-print(ROV_transects$unix_time[1])
-# print(transect_times$start_UTC[1])
-# print(ROV_transects$UTC[1])
 
 # add the EXACT 13-digit Unix times of transect start/end to the ROV_transect dataframe
-
 # add empty rows at the end
-print(nrow(ROV_transects))
+# print(nrow(ROV_transects))
 ROV_transects[nrow(ROV_transects) + (nrow(transect_times)), ] <- NA
 print(nrow(ROV_transects))
 
-# add transect start and end times to those empty rows as unix times
-start_rows <- data.frame(transect_times$start_unix)
-end_rows <- data.frame(transect_times$end_unix)
-setnames(start_rows, "transect_times.start_unix", "unix_time")
-setnames(end_rows, "transect_times.end_unix", "unix_time")
+# Bind transect times and information with the ROV dataframe, for columns with the same datatype
 
+start_rows <- data.frame(dplyr::select(transect_times, start_unix, lat_dd_start, lon_dd_start, expedition, dive_number, start_UTC, depth_m_start))
+end_rows <- data.frame(dplyr::select(transect_times, end_unix, lat_dd_end, lon_dd_end, expedition, dive_number, end_UTC, depth_m_end))
+
+# and rename columns to match for rbind()
+setnames(start_rows, "start_unix", "unix_time")
+setnames(start_rows, "lat_dd_start", "latitude_dd") 
+setnames(start_rows, "lon_dd_start", "longitude_dd")
+setnames(start_rows, "start_UTC", "UTC")
+setnames(start_rows, "depth_m_start", "depth_m")
+
+setnames(end_rows, "end_unix", "unix_time")
+setnames(end_rows, "lat_dd_end", "latitude_dd")
+setnames(end_rows, "lon_dd_end", "longitude_dd")
+setnames(end_rows, "end_UTC", "UTC")
+setnames(end_rows, "depth_m_end", "depth_m")
+
+# flip sign of imported depths to match ROv data
+start_rows$depth_m <- start_rows$depth_m * -1
+end_rows$depth_m <- end_rows$depth_m * -1
+
+##################################################                                  # the depths are off by a few m btwn. ROV and annotations - check
+
+# test shows data columns that are the same btwn ROV and transect_times dfs (except alt)
 test <- arrange(bind_rows(ROV_transects, start_rows, end_rows), unix_time)
-# View(test)
 
-# now join the transect info
+# join remaining transect info that needs new columns to be created in the ROV df
+# DO NOT join by dive number. Everything will explode. for now anyway
+# extra columns -- take out later / needs cleaned
 ROV_join1 <- dplyr::left_join(test, 
-                             dplyr::select(transect_times, c(start_unix, transect_depth, dive_number, comment_start)),
+                             dplyr::select(transect_times, c(start_unix, transect_depth, comment_start)),
                               dplyr::join_by("unix_time"=="start_unix"))
 ROV_join <- dplyr::left_join(ROV_join1, 
-                              dplyr::select(transect_times, c(end_unix, transect_depth, dive_number, comment_end)),
+                              dplyr::select(transect_times, c(end_unix, comment_end)),
                               dplyr::join_by("unix_time"=="end_unix"))
 ROV_join <- arrange(ROV_join, unix_time)
-# View(ROV_join)
 
-# THIS WORKS YES
-# DO NOT join by dive number. Everything will explode. 
-# there are extra cols fix it later don't worry right now
-
-
-# create a loop by dive eventually on the outside (above)
-# create a loop by transect here
-
-# first, fill in transect depth all the way down
+# fill in transect depth all the way down. Not actual depth, but an ID for which transect we're on.
 ROV_join <- ROV_join %>% 
-  fill(transect_depth.x) 
+  fill(transect_depth) 
 
+# make sure all of that worked 
 # View(ROV_join)
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# create a loop by dive eventually on the outside (above)
 
-# Goal is to run smoothing for each individual transect based on comments in ROV_join as proxy for start times and end times
-
+# create a loop by transect here
 # eventually, make this into a dynamic filter where you're grabbing all of the rows with same transect depth
 # for now, as a trial:
 
-ROV_benthic1 <- filter(ROV_join, transect_depth.x=="800") # rename transect-1 later
-ROV_benthic <-  filter(ROV_benthic1, !is.na(latitude_dd))
+ROV_benthic <- ROV_join %>% 
+  dplyr::filter(transect_depth=="800") %>% 
+  dplyr::filter(!is.na(latitude_dd))
 
+  
+  
+# ROV_benthic1 <- filter(ROV_join, transect_depth.x=="800") # rename transect-1 later
+# ROV_benthic <-  filter(ROV_benthic1, !is.na(latitude_dd)) # this gets rid of the transect times because they have no lat... SOLVED
+
+print(nrow(ROV_benthic))
+View(ROV_benthic)
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 
 # Now test out smoothing 
@@ -162,22 +187,34 @@ ROV_distance_df <- data.frame(expedition = expedition,
                               distance_m = ROV_distance_traveled_vec)
 
 
+#-------------------------------------------------------------------------------
+#Visualize outlier detection results
 
-# and show
-#raw data
+# ggplot2::ggplot(ROV_SMA_df, ggplot2::aes(x = ROV_SMA_window, y = ROV_SMA_distance)) +
+#   ggplot2::geom_point() +
+#   ggplot2::labs(x = "Number of ROV position points used in simple moving average smooth",
+#        y = "ROV distance traveled (m)",
+#        title = "Change in predicted ROV distance traveled with increased smoothing",
+#        subtitle = expedition) +
+#   ggplot2::geom_vline(xintercept = ROV_distance_traveled, color = "#FF6C57", linewidth = 1.5) +
+#   ggplot2::theme_bw()
+
+#------------------------------------------------------------------------------
+#Visualize raw and smoothed track lines
+
+ROV_smooth_predicted <- ROV_benthic |>
+  dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = ROV_threshold$ROV_SMA_window),
+                Lon_SMA = TTR::SMA(longitude_dd, n = ROV_threshold$ROV_SMA_window),
+                Depth_SMA = TTR::SMA(depth_m, n = ROV_threshold$ROV_SMA_window))
+# 
+# #raw data
 # ROV_benthic |>
 #   leaflet::leaflet() |>
 #   leaflet::addTiles() |>
 #   leaflet::addPolylines(lng = ~longitude_dd, lat = ~latitude_dd)
-# # 
+# 
 #smoothed data
 ROV_smooth_predicted |>
   leaflet::leaflet() |>
   leaflet::addTiles() |>
   leaflet::addPolylines(lng = ~Lon_SMA, lat = ~Lat_SMA)
-
-
-
-
-
-

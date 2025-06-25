@@ -176,8 +176,9 @@ print(transect_end)
 #-------------------------------------------------------------------------------
 # create a reformatted dataframe that has start, end, and depth as columns to use in ROV distance traveled script
 
-transect_times<- data.frame(matrix(ncol=10, nrow=nrow(transect_start)))
-col_names= c('expedition', 'dive_number', 'transect_depth', 'start_UTC', 'end_UTC', 'start_unix', 'end_unix', 'transect_num', 'comment_start', 'comment_end')
+transect_times<- data.frame(matrix(ncol=16, nrow=nrow(transect_start)))
+col_names= c('expedition', 'dive_number', 'transect_depth', 'start_UTC', 'end_UTC', 'start_unix', 'end_unix', 'transect_num', 
+             'lat_dd_start', 'lon_dd_start', 'lat_dd_end', 'lon_dd_end','comment_start', 'comment_end', 'depth_m_start', 'depth_m_end')
 colnames(transect_times) <- col_names
 
 transect_times$expedition <- transect_start$expedition
@@ -186,12 +187,21 @@ transect_times$transect_depth <- transect_start$depth_ID
 transect_times$transect_num <- transect_start$transect_num
 transect_times$comment_start <- transect_start$comment
 transect_times$comment_end <- transect_end$comment
+transect_times$depth_m_start <- transect_start$depth_m
+transect_times$depth_m_end <- transect_end$depth_m
 
 transect_times$start_UTC <- as.POSIXct(transect_start$date_time, tz = "UTC")  
 transect_times$end_UTC <- as.POSIXct(transect_end$date_time, tz = "UTC")
 
 transect_times$start_unix <- as.numeric(transect_times$start_UTC)
 transect_times$end_unix <- as.numeric(transect_times$end_UTC)
+
+transect_times$lat_dd_start <- transect_start$latitude_deg
+transect_times$lon_dd_start <- transect_start$longitude_deg
+transect_times$lat_dd_end <- transect_end$latitude_deg
+transect_times$lon_dd_end <- transect_end$longitude_deg
+
+
 
 print(transect_times) # make sure the dates, times, and dives are in order :D
 
