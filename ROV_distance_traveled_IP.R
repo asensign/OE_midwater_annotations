@@ -78,11 +78,6 @@ for (n in 1:nrow(transect_times)){
   
  #-------------------------------------------------------------------------------
 # Add the EXACT 13-digit Unix times of transect start/end to the ROV_transect dataframe:
-  
- # add empty rows at the end for later - these will contain transect start and end time
-# ROV_transect[nrow(ROV_transect) + (nrow(transect_times)), ] <- NA
-# ROV_transect[nrow(ROV_transect) + 2, ] <- NA
-  
 # Bind transect times and information with the ROV dataframe, for columns with the same datatype
   
 start_rows <- data.frame(dplyr::select(transect_times, start_unix, lat_dd_start, lon_dd_start, expedition, dive_number, start_UTC, depth_m_start))
@@ -135,92 +130,106 @@ ROV_midwater <- ROV_join %>%
 # create a loop by transect 
 df_list <- list()
   
-for (n in 1:length(transect_times$transect_depth)) {
-  
+# for (n in 1:length(transect_times$transect_depth)) {
+for (n in 1:1) {  
   td <- as.numeric(transect_times$transect_depth[n])
   df_name <- paste0("ROV_midwater_", td)
 
   df_list[[df_name]] <- ROV_midwater %>%
     dplyr::filter(transect_depth == sprintf("%s",td))
   
-  
-  write.csv(df_list[[df_name]], paste0(wd,"/exports/", expedition,"_dive", i, "_transect", td ,"_ROV_distance.csv"),row.names = FALSE)
+  # write.csv(df_list[[df_name]], paste0(wd,"/exports/", expedition,"_dive", i, "_transect", td ,"_ROV_distance.csv"),row.names = FALSE)
+  View(df_list[[df_name]])
 }
+  #-------------------------------------------------------------------------------
+  #Smoothing
+  #iterate generation of smooths across full dataset, calculate distance traveled 
+  #for each smooth, save into vector
+  # ROV_SMA_window <- seq(from = 1, to = nrow(ROV_midwater), by = 100)
+  ROV_SMA_window <- seq(from = 1, to = 550, by = 1) # 1 is no smooth
+  ROV_SMA_distance <- c()
 
-# View(df_list$ROV_midwater_700)
+  for(j in ROV_SMA_window){
+    ROV_smooth <- ROV_midwater |>
+      dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = j),
+                    Lon_SMA = TTR::SMA(longitude_dd, n = j),
+                    Depth_SMA = TTR::SMA(depth_m, n = j))
+    ROV_distance_smooth <- ROV_distance(ROV_smooth, lat = Lat_SMA, long = Lon_SMA)
+    ROV_distance_m <- sum(ROV_distance_smooth$distance_3D_m, na.rm = TRUE) # total dist. ROV traveled calculation
+    ROV_SMA_distance <- c(ROV_SMA_distance, ROV_distance_m)
+  }
+
+  # create data frame of smoothing window and total ROV distance traveled
+  ROV_SMA_df <- as.data.frame(cbind(ROV_SMA_window, ROV_SMA_distance))
+  # View(ROV_SMA_df)
+
+# 
+  # ggplot2::ggplot(ROV_SMA_df, ggplot2::aes(x = ROV_SMA_window, y = ROV_SMA_distance)) +
+  #   ggplot2::geom_point() +
+  #   ggplot2::labs(x = "Number of ROV position points used in simple moving average smooth",
+  #        y = "ROV distance traveled (m)",
+  #        title = "Change in predicted ROV distance traveled with increased smoothing",
+  #        subtitle = expedition) +
+  #   # ggplot2::geom_vline(xintercept = ROV_distance_traveled, color = "#FF6C57", linewidth = 1.5) +
+  #   ggplot2::theme_bw()
+  # 
+
+  
+  #-------------------------------------------------------------------------------
+  #Outlier Detection
+  
+  #add column with differences between pairs of distances across rows
+  ROV_SMA_df <- ROV_SMA_df |> 
+    dplyr::mutate(Distance_diff = c(diff(ROV_SMA_distance),0)) #zero needed to make full column
+  
+  #MAD-median outlier detection across differences. Uses function described in 
+  # Wilcox, R.R. (2022) "Introduction to Robust Estimation and Hypothesis Testing"
+  # Fifth Edition, Elsevier. https://osf.io/xhe8u/
+  MadMed_out_dist <- out(ROV_SMA_df$Distance_diff) #output is a list
+  ROV_SMA_df_outliers <- as.data.frame(MadMed_out_dist[[3]])
+  colnames(ROV_SMA_df_outliers) = c("distance")
+  summary(ROV_SMA_df_outliers) #visual check
+  
+  outlier_threshold <- ROV_SMA_df |> 
+    dplyr::filter(!Distance_diff %in% ROV_SMA_df_outliers$distance) |> 
+    dplyr::first()
+  
+  ROV_distance_traveled <- outlier_threshold$ROV_SMA_distance
+  
+  ROV_distance_traveled_vec <- c(ROV_distance_traveled_vec, ROV_distance_traveled)
+  
+  # print(paste0("Dive",i," completed"))
+  # }
+  
+  ROV_distance_df <- data.frame(expedition = expedition, 
+                                dive_number = as.numeric(ROV_dive_numbers), 
+                                distance_m = ROV_distance_traveled_vec)
+  
+# }
+
+#-------------------------------------------------------------------------------
+#Visualize outlier detection results
+
+ggplot2::ggplot(ROV_SMA_df, ggplot2::aes(x = ROV_SMA_window, y = ROV_SMA_distance)) +
+  ggplot2::geom_point() +
+  ggplot2::labs(x = "Number of ROV position points used in simple moving average smooth",
+       y = "ROV distance traveled (m)",
+       title = "Change in predicted ROV distance traveled with increased smoothing",
+       subtitle = expedition) +
+  ggplot2::geom_vline(xintercept = ROV_distance_traveled, color = "#FF6C57", linewidth = 1.5) +
+  ggplot2::theme_bw()
 
 
 
 
 stop()
-# 6/25 working up to here. Issues with smoothing routine. Probably need to start from scratch
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-#Smoothing
-#iterate generation of smooths across full dataset, calculate distance traveled 
-#for each smooth, save into vector
-ROV_SMA_window <- seq(from = 1, to = nrow(ROV_benthic), by = 100)
-# print(ROV_SMA_window)
-ROV_SMA_distance <- c()
 
-for(j in ROV_SMA_window){
-  ROV_smooth <- ROV_benthic |> 
-    dplyr::mutate(Lat_SMA = TTR::SMA(latitude_dd, n = j),
-                  Lon_SMA = TTR::SMA(longitude_dd, n = j),
-                  Depth_SMA = TTR::SMA(depth_m, n = j))
-  ROV_distance_smooth <- ROV_distance(ROV_smooth, lat = Lat_SMA, long = Lon_SMA) 
-  ROV_distance_m <- sum(ROV_distance_smooth$distance_3D_m, na.rm = TRUE)
-  ROV_SMA_distance <- c(ROV_SMA_distance, ROV_distance_m)
-}
-
-#create data frame of smoothing window and total ROV distance traveled
-ROV_SMA_df <- as.data.frame(cbind(ROV_SMA_window, ROV_SMA_distance))
-View(ROV_distance_smooth)
-#-------------------------------------------------------------------------------
-#Outlier Detection
-
-#add column with differences between pairs of distances across rows
-ROV_SMA_df <- ROV_SMA_df |> 
-  dplyr::mutate(Distance_diff = c(diff(ROV_SMA_distance),0)) #zero needed to make full column
-
-#MAD-median outlier detection across differences. Uses function described in 
-# Wilcox, R.R. (2022) "Introduction to Robust Estimation and Hypothesis Testing"
-# Fifth Edition, Elsevier. https://osf.io/xhe8u/
-MadMed_out_dist <- out(ROV_SMA_df$Distance_diff) #output is a list
-ROV_SMA_df_outliers <- as.data.frame(MadMed_out_dist[[3]])
-colnames(ROV_SMA_df_outliers) = c("distance")
-summary(ROV_SMA_df_outliers) #visual check
-
-outlier_threshold <- ROV_SMA_df |> 
-  dplyr::filter(!Distance_diff %in% ROV_SMA_df_outliers$distance) |> 
-  dplyr::first()
-
-ROV_distance_traveled <- outlier_threshold$ROV_SMA_distance
-
-ROV_distance_traveled_vec <- c(ROV_distance_traveled_vec, ROV_distance_traveled)
-
-# print(paste0("Dive",i," completed"))
-# }
-
-ROV_distance_df <- data.frame(expedition = expedition, 
-                              dive_number = as.numeric(ROV_dive_numbers), 
-                              distance_m = ROV_distance_traveled_vec)
 
 # write.csv(ROV_distance_df, paste0(wd,"/exports/", expedition,"_ROV_distance.csv"),
           # row.names = FALSE)
 
-#-------------------------------------------------------------------------------
-#Visualize outlier detection results
-
-# ggplot2::ggplot(ROV_SMA_df, ggplot2::aes(x = ROV_SMA_window, y = ROV_SMA_distance)) +
-#   ggplot2::geom_point() +
-#   ggplot2::labs(x = "Number of ROV position points used in simple moving average smooth",
-#        y = "ROV distance traveled (m)",
-#        title = "Change in predicted ROV distance traveled with increased smoothing",
-#        subtitle = expedition) +
-#   ggplot2::geom_vline(xintercept = ROV_distance_traveled, color = "#FF6C57", linewidth = 1.5) +
-#   ggplot2::theme_bw()
 
 #------------------------------------------------------------------------------
 #Visualize raw and smoothed track lines

@@ -24,9 +24,9 @@ lapply(function_names, source)
 
 #set standard name to refer to your data, using the naming convention
 #"EX","expedition number", e.g.:
-# data_name <- "EX2107"
+data_name <- "EX2107"
 # data_name <- "EX1806"
-data_name <- "EX1903L2" # this one takes about 35 minutes
+# data_name <- "EX1903L2" # this one takes about 35 minutes
 
 #create vector of dive numbers for your dataset. 
 #dive_number<-c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
@@ -249,6 +249,8 @@ annotations_with_transects <- arrange(rbind(filtered,transect_info), date_time) 
 clean_df <- annotations_with_transects %>% 
   fill(depth_ID) %>% 
   fill(transect_num)
+
+head(clean_df)
 
 # write out all clean annotations
 dir.create(paste0(wd,"/exports/"))
