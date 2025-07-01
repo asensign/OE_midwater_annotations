@@ -11,6 +11,7 @@ library(tidyr)
 library(dplyr)
 library(data.table)
 library(gdata)
+library(hms)
 
 
 function_names <- list.files(path = "C:/Users/Alexandra.Ensign/Documents/GitHub/OE_midwater_annotations/Functions",
@@ -40,12 +41,6 @@ if (expedition == "EX1806") {
 # read in cleaned annotations from midwater_annotations_cleaning
 annotations_clean <- read.csv(paste0(wd,"/exports/midwater_annotations_",expedition,".csv"), header = TRUE)
 
-# split the annotations date_time column into date and time
-annotations_clean$Date_S <- as.Date (annotations_clean$date_time)
-annotations_clean$Time <- format((annotations_clean$date_time),format = "%H:%M:%S") ### check
-annotations_clean$Time_S <- as.POSIXct(annotations_clean$Time, tz = "UTC") # rename this depending on if you use T_S, T_E, or T_M from the acoustics
-# head(annotations_clean)
-
 # read in acoustics data
 acoustics <- read.csv(paste0(wd,"/",expedition,"_echoview-output.csv"), header = TRUE)
 # head(acoustics)
@@ -59,28 +54,52 @@ acoustics <- select(acoustics, Process_ID, Interval, Layer, Date_S, Time_S, Date
                     Exclude_below_line_range_mean, Exclude_above_line_range_mean, Center_of_mass, Inertia,
                     Proportion_occupied, Equivalent_area, Aggregation_index)
 
-# convert dates and times to utc yayyyy
+### convert dates and times in acoustics to be the same format as annotations (but going to keep the old cols for now)
+# there is probably a better way to do this 
 acoustics$Date_S <- as.POSIXct(strptime(acoustics$Date_S, format = "%Y%m%d", tz = "UTC"))
 acoustics$Date_E <- as.POSIXct(strptime(acoustics$Date_E, format = "%Y%m%d", tz = "UTC"))
+ 
+acoustics$Time_S <- as_hms(as.POSIXct(strptime(acoustics$Time_S, format = "%H:%M:%OS", tz = "UTC")))
+acoustics$Time_E <- as_hms(as.POSIXct(strptime(acoustics$Time_E, format = "%H:%M:%OS", tz = "UTC")))
 
-acoustics$Time_S <- as.POSIXct(acoustics$Time_S, format = "%H:%M:%OS", tz = "UTC")
-acoustics$Time_E <- as.POSIXct(acoustics$Time_E, format = "%H:%M:%OS", tz = "UTC")
+acoustics$Datetime_S <- with(acoustics, as.POSIXct(paste(Date_S, Time_S),
+                                                         format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
+acoustics$Datetime_E <- with(acoustics, as.POSIXct(paste(Date_E, Time_E),
+                                                   format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
 # head(acoustics)
 
 
-# subset annotations based on start and end times from acoustics
+### Subset annotations based on start and end times from acoustics
+# create a new empty dataframe for the filtered annotations
+annotations_bin_subset <- data.frame()
+
+# use timestamps to filter for annotations that fall within Time_S and Time_E from the bins
+# this takes a little while to run fyi
+
+for(i in 1:nrow(annotations_clean)){                                              
+  for (j in 1:nrow(acoustics)){                                              
+    
+    ann_time<-ymd_hms(annotations_clean$date_time[i])
+    
+    acoustic_start <- ymd_hms(acoustics$Datetime_S[j])                                 
+    acoustic_end <- ymd_hms(acoustics$Datetime_E[j])
+    
+    if (ann_time > acoustic_start && ann_time < acoustic_end){                                 
+      annotations_bin_subset <- rbind((annotations_clean[i,]), annotations_bin_subset)                         
+    }
+  }
+}
+
+# View(annotations_bin_subset)
+
+### Now that the annotations are filtered, join them to the acoustics dataframe
+# only pull over acoustics where there are annotations
+
+test <-  dplyr::left_join(annotations_bin_subset, 
+                                     acoustics,
+                                     dplyr::join_by("date_time"=="Datetime_S"))
+head(test)
+# ROV_join <- arrange(ROV_join, Date)
 
 
-### bind the annotations and the acoustics by UTC
-
-# bind just the times first?
-
-
-# test <- cbindX(annotations_clean, acoustics) # literally just smushes them together
-
-# now need to merge times and sort by time
-
-# head(test)
-
-
-  
+# write.csv(transect_times, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
