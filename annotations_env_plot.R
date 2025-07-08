@@ -35,31 +35,31 @@ print(files)
 
 CTD_all <- list()
 
-for (i in 1:length(files)) {
-  CTD_file <- data.frame(read.csv(files[i]))
+# add expedition and dive name columns to the CTD data based on the filenames
+# create a list of dataframes
+# end with a list of all CTD data for an expedition as dataframes by dive
+# for (i in 1:length(files)) {
+#   CTD_file <- data.frame(read.csv(files[i]))
+# 
+#   filename <- files[i]
+#   dive_numbern <- (c(((unlist(strsplit(filename, ("_")))[2]))))
+# 
+#   CTD_file$expedition <- data_name
+#   CTD_file$dive_number <- dive_numbern
+#   
+#   CTD_all[[i]] <- CTD_file
+# }
+# 
+# print(length(CTD_all))
+# 
+# setwd(wd)
+# 
+# # parse by dive number
+# # plot scatterplot for each
+# 
+# View(CTD_all[[1]])
 
-  filename <- files[i]
-  dive_numbern <- (c(((unlist(strsplit(filename, ("_")))[2]))))
-
-  CTD_file$expedition <- data_name
-  CTD_file$dive_number <- dive_numbern
-  
-  rbind(CTD_file, CTD_all[i])
-}
-
-View(CTD_all)
-
-
-  
-  
-CTD_file$dive_number[j] <- (c(((unlist(strsplit(filename, ("_")))[2]))))
-
-  
-
-View(CTD_all)
-
-
-setwd(wd)
-
+ggplot(mtcars, aes(x=wt, y=mpg)) +
+  geom_point(size=2, shape=23)
 
 
