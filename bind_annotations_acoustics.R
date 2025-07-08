@@ -73,16 +73,16 @@ acoustics$Datetime_E <- with(acoustics, as.POSIXct(paste(Date_E, Time_E),
 # create a new empty dataframe for the filtered annotations
 annotations_bin_subset <- data.frame()
 
-# use timestamps to filter for annotations that fall within Time_S and Time_E from the bins
+# use timestamps to filter for annotations that fall within Time_S and Time_E from the bins of the acoustic data
 # this takes a little while to run fyi
 
 for(i in 1:nrow(annotations_clean)){                                              
   for (j in 1:nrow(acoustics)){                                              
     
-    ann_time<-ymd_hms(annotations_clean$date_time[i])
+    ann_time<-(annotations_clean$date_time[i])
     
-    acoustic_start <- ymd_hms(acoustics$Datetime_S[j])                                 
-    acoustic_end <- ymd_hms(acoustics$Datetime_E[j])
+    acoustic_start <- (acoustics$Datetime_S[j])                                 
+    acoustic_end <- (acoustics$Datetime_E[j])
     
     if (ann_time > acoustic_start && ann_time < acoustic_end){                                 
       annotations_bin_subset <- rbind((annotations_clean[i,]), annotations_bin_subset)                         
@@ -90,16 +90,19 @@ for(i in 1:nrow(annotations_clean)){
   }
 }
 
-# View(annotations_bin_subset)
+View(annotations_bin_subset)
+# annotations subset by acoustic times
 
 ### Now that the annotations are filtered, join them to the acoustics dataframe
 # only pull over acoustics where there are annotations
 
-test <-  dplyr::left_join(annotations_bin_subset, 
+annotations_bin_subset$date_time <- as.POSIXct(annotations_bin_subset$date_time, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+
+test <-  dplyr::full_join(annotations_bin_subset, 
                                      acoustics,
                                      dplyr::join_by("date_time"=="Datetime_S"))
-head(test)
-# ROV_join <- arrange(ROV_join, Date)
+test <- arrange(test, date_time)
 
+# View(test)
 
-# write.csv(transect_times, paste0(wd,"/exports/midwater_transect_times_", data_name, ".csv"),row.names = FALSE)
+write.csv(test, paste0(wd,"/exports/bound_annotations_acoustics_", data_name, ".csv"),row.names = TRUE)

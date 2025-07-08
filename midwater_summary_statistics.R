@@ -12,53 +12,67 @@ function_names <- list.files(path = "C:/Users/Alexandra.Ensign/Documents/OE_midw
 lapply(function_names, source)
 
 #set working directory
-wd <- "C:/Users/Alexandra.Ensign/Documents/EX2107"
+wd <- "C:/Users/Alexandra.Ensign/Documents/midwater_R_files/"
 setwd(wd)
 
 #set standard name to refer to your data
-data_name <- "EX2107"
+data_name <- "EX1903L2"
 
-midwater_annotations<-readr::read_csv(paste0(wd, "/exports/midwater_annotations", 
+midwater_annotations<-readr::read_csv(paste0(wd, data_name, "/exports/midwater_annotations_", 
                        data_name, ".csv"), col_names = TRUE)
 
-distance_traveled <- read.csv(paste0(wd,"/exports/",data_name,"_ROV_distance.csv"))
-View(distance_traveled)
+# distance_traveled <- read.csv(paste0(wd,"/exports/",data_name,"_ROV_distance.csv"))
+# View(distance_traveled)
 
-dive_number<-unique(benthic_annotations$dive_number)
+dive_number<-unique(midwater_annotations$dive_number)
 #QC check to make sure the benthic annotations dive numbers match the ROV track
 #dive numbers
-all(dive_number == distance_traveled$dive_number)
+# all(dive_number == distance_traveled$dive_number)
 
 dive_number #stop here and cross-reference with dive summary text files - remove
 #text files that have no annotations from the folder or else the ROV_metrics 
 #code below will fail
+# for (i in dive_number) {
+#   print(i)
+
+
+depth_ID <- midwater_annotations$depth_ID
+transect <- midwater_annotations$transect_num
 
 View(midwater_annotations)
 #-------------------------------------------------------------------------------
+#Datetime when transect started
+# 
 
-#Datetime when the ROV initiated on bottom ops
-benthic_start <- benthic_annotations |> 
-  dplyr::select("dive_number", "benthic_start") |> 
-  dplyr::distinct()
+# need to figure out how you want to set this up
+# read in from transect times OR just use depth ID on midwater_annotations in order to filter by transect
+
+
+# transect_start<-filter(midwater_annotations, (str_detect(comment, regex("start transect", ignore_case = T))))
+# transect_end<-filter(midwater_annotations, (str_detect(comment, regex("end transect", ignore_case = T))))
+# 
+# transect_start <- midwater_annotations |>
+#   dplyr::select("dive_number", "date_time") |>
+#   dplyr::distinct()
 
 #Overall summary statistics for substrate annotations
-substrate_annotations <- benthic_annotations |> 
-  dplyr::filter(taxonomy %in% c("CMECS", "Simplified CMECS")) |> 
-  dplyr::select("dive_number", "component") |> 
-  dplyr::group_by(dive_number) |> 
-  dplyr::summarize(geoform_or_substrate = sum(!is.na(component)))
-View(substrate_annotations)
+# substrate_annotations <- midwater_annotations |> 
+#   dplyr::filter(taxonomy %in% c("CMECS", "Simplified CMECS")) |> 
+#   dplyr::select("dive_number", "component") |> 
+#   dplyr::group_by(dive_number) |> 
+#   dplyr::summarize(geoform_or_substrate = sum(!is.na(component)))
+# View(substrate_annotations)
 
 #count number of biological annotations that are identified as animals but have
 #no phylum-level identification
-unidentified_animalia <- benthic_annotations |> 
+unidentified_animalia <- midwater_annotations |> 
   dplyr::group_by(dive_number) |> 
   dplyr::filter(biota == "Biota", is.na(phylum), kingdom == "Animalia") |> 
   dplyr::summarize(Unidentified_Biota = dplyr::n())
 View(unidentified_animalia)
 
 #sum of biological annotations by taxonomic level
-biological_annotations <- benthic_annotations |>
+biological_annotations <- midwater_annotations |>
   dplyr::filter(biota == "Biota") |> 
   dplyr::select("dive_number","species","genus","family","order","class","phylum") |> 
   dplyr::group_by(dive_number) |>
@@ -73,18 +87,18 @@ biological_annotations <- biological_annotations |>
   dplyr::mutate(total_biota = phylum + Unidentified_Biota)
 
 #percentage of annotations flagged for review
-percent_flagged <- benthic_annotations |> 
+percent_flagged <- midwater_annotations |> 
   dplyr::group_by(dive_number) |> 
   dplyr::summarize(percent_flagged = sum(flagged_for_review)/dplyr::n()*100)
 
 #count annotations by dive for major phyla of interest to OER
-interesting_phyla_count <- benthic_annotations |> 
+interesting_phyla_count <- midwater_annotations |> 
   dplyr::group_by(dive_number) |> 
   dplyr::summarize(Echinodermata = sum(phylum == "Echinodermata", na.rm = TRUE),
                    Porifera = sum(phylum == "Porifera", na.rm = TRUE))
                   
 #count annotations of Chordata within the Vertebrata subphylum  
-Vertebrata <- benthic_annotations |>
+Vertebrata <- midwater_annotations |>
   dplyr::group_by(dive_number) |> 
   dplyr::filter(phylum == "Chordata") |>   
   dplyr::filter(! class %in% c("Thaliacea","Ascidiacea", "Appendicularia", "Larvacea")) |>
@@ -93,7 +107,7 @@ Vertebrata <- benthic_annotations |>
 
 #count coral annotations using the Deep Sea Coral Program code found here:
 #https://github.com/RobertMcGuinn/deepseatools/blob/master/code/143469.R
-Deep_sea_corals <- benthic_annotations |> 
+Deep_sea_corals <- midwater_annotations |> 
   dplyr::group_by(dive_number) |> 
   dplyr::filter(phylum == "Cnidaria") |>
   dplyr::filter(order == "Scleractinia" |
@@ -116,7 +130,7 @@ Deep_sea_corals <- benthic_annotations |>
 
 #compare relative contributions of observed phyla to counts of total biological
 #annotations
-phyla_frequency <- benthic_annotations |> 
+phyla_frequency <- midwater_annotations |> 
   dplyr::filter(biota == "Biota") |>
   tidyr::drop_na(phylum) |> 
   dplyr::group_by(dive_number,phylum) |> 
@@ -134,17 +148,17 @@ phyla_frequency_percent_all <- phyla_frequency |>
   tidyr::pivot_longer(!phylum, names_to = "dive_number", values_to = "percent")
   
 #calculate time on bottom based on benthic start and benthic end columns from
-#the benthic_annotations data frame
-bottom_time_hours <- benthic_annotations |> 
-  dplyr::group_by(dive_number) |> 
-  dplyr::reframe(bottom_time_hours = difftime(benthic_end, benthic_start, 
-                                        units = "hours")) |> 
-  dplyr::distinct()
+#the midwater_annotations data frame
+# bottom_time_hours <- midwater_annotations |> 
+#   dplyr::group_by(dive_number) |> 
+#   dplyr::reframe(bottom_time_hours = difftime(benthic_end, benthic_start, 
+#                                         units = "hours")) |> 
+#   dplyr::distinct()
 
-bottom_time_hours$bottom_time_hours <- as.numeric(bottom_time_hours$bottom_time_hours)
+# bottom_time_hours$bottom_time_hours <- as.numeric(bottom_time_hours$bottom_time_hours)
 
 #calculate mean depth during ROV time on bottom
-mean_benthic_depth <- benthic_annotations |> 
+mean_benthic_depth <- midwater_annotations |> 
   dplyr::select(dive_number, depth_m) |> 
   dplyr::filter(!is.na(depth_m)) |> 
   dplyr::group_by(dive_number) |> 
@@ -153,21 +167,22 @@ mean_benthic_depth <- benthic_annotations |>
 #Join counts of biological annotations by taxonomy, counts of interesting phyla,
 #counts of substrate annotations, and ROV dive information based on dive number
 
-summary_statistics <- list(benthic_start, mean_benthic_depth, biological_annotations, percent_flagged, 
-                           interesting_phyla_count, Vertebrata, Deep_sea_corals, substrate_annotations, 
-                           bottom_time_hours,distance_traveled) |> 
-  purrr::reduce(dplyr::left_join, by = "dive_number")
+summary_statistics <- list(biological_annotations, percent_flagged, 
+                           interesting_phyla_count, Vertebrata, Deep_sea_corals, mean_benthic_depth) |> 
+                           # benthic_start, mean_benthic_depth,bottom_time_hours,substrate_annotations, distance_traveled) |> 
+  purrr::reduce(dplyr::left_join, by = c("dive_number"))
 
 #replace NA with 0 across whole data frame
 summary_statistics[is.na(summary_statistics)] = 0
 
 #move expedition column
-summary_statistics <- summary_statistics |> 
-  dplyr::relocate(expedition, .before = dive_number)
+# summary_statistics <- summary_statistics |> 
+  # dplyr::relocate(expedition, .before = dive_number)
 
 View(summary_statistics)
-write.csv(summary_statistics, paste0(wd, "/exports/summary_statistics_", data_name, 
+
+write.csv(summary_statistics, paste0(wd, data_name, "/exports/summary_statistics_", data_name, 
                                 ".csv"),row.names = FALSE)
 
-write.csv(phyla_frequency_percent_all, paste0(wd, "/exports/phyla_frequency_percent_all_", data_name, 
+write.csv(phyla_frequency_percent_all, paste0(wd, data_name, "/exports/phyla_frequency_percent_all_", data_name, 
                                      ".csv"),row.names = FALSE)
