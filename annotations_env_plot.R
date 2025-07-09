@@ -31,35 +31,47 @@ setwd(wd2)
 
 ### for each CTD dive file (.csv) in the expedition selected,
 files <- list.files(pattern = '*.csv')
-print(files)
+# CTD_file <- lapply(files, read.csv, header=T)
 
-CTD_all <- list()
+CTD_all_dives <- data.frame()
 
 # add expedition and dive name columns to the CTD data based on the filenames
 # create a list of dataframes
 # end with a list of all CTD data for an expedition as dataframes by dive
-# for (i in 1:length(files)) {
-#   CTD_file <- data.frame(read.csv(files[i]))
-# 
-#   filename <- files[i]
-#   dive_numbern <- (c(((unlist(strsplit(filename, ("_")))[2]))))
-# 
-#   CTD_file$expedition <- data_name
-#   CTD_file$dive_number <- dive_numbern
-#   
-#   CTD_all[[i]] <- CTD_file
-# }
-# 
-# print(length(CTD_all))
-# 
-# setwd(wd)
-# 
-# # parse by dive number
-# # plot scatterplot for each
-# 
-# View(CTD_all[[1]])
+for (i in 1:length(files)) {
+  
+  filename <- files[i]
+  dive_numbern <- (c(((unlist(strsplit(filename, ("_")))[2]))))
+  print(filename)
+  print(dive_numbern)
+  
+  CTD_df <- read.csv(paste0(filename))
 
-ggplot(mtcars, aes(x=wt, y=mpg)) +
-  geom_point(size=2, shape=23)
+  CTD_df$expedition <- data_name
+  CTD_df$dive_number <- dive_numbern
+  
+  CTD_all_dives <- rbind(CTD_all_dives, CTD_df)
+}
+
+# View(CTD_all_dives)
+setwd(wd)
+
+prDE <- CTD_all_dives$prDE
+temp <- CTD_all_dives$t090C
+sbeox <- CTD_all_dives$sbeox0Mg.L
+salinity <- CTD_all_dives$sal00
+
+# Scatterplot for all vars for entire expedition (ALL DIVES)
+
+ggplot(CTD_all_dives, aes(x=wt, y=mpg)) + geom_point(size=2, shape=23)
+
+# plot x as env data and y as ann/min based on func group (need to define)
+
+
+# # parse by dive numberand plot scatterplot for each
+dive_number<-unique(CTD_all_dives$dive_number)
+dplyr::group_by(dive_number)
+
+
 
 

@@ -39,13 +39,52 @@ dive_number #stop here and cross-reference with dive summary text files - remove
 depth_ID <- midwater_annotations$depth_ID
 transect <- midwater_annotations$transect_num
 
-View(midwater_annotations)
+# View(midwater_annotations)
+
+# create column for transect duration and calculate it based on comments??
+
+transect_start<-filter(midwater_annotations, (str_detect(comment, regex("start transect", ignore_case = T))))
+transect_end<-filter(midwater_annotations, (str_detect(comment, regex("end transect", ignore_case = T))))
+
+transect_times<- data.frame(matrix(ncol=6, nrow=nrow(transect_start)))
+col_names= c("expedition","dive_number","depth_ID","start","end","duration")
+colnames(transect_times) <- col_names
+
+for (i in 1:nrow(transect_start)) {
+# for (i in 1:2) {
+  start<- transect_start$date_time[i]
+  # end<- transect_end$date_time[i]
+  depth_ID <- transect_start$depth_ID[i]
+  duration<- difftime(transect_end$date_time[i], transect_start$date_time[i])
+  
+  transect_times$start[i] <- start
+  transect_times$end[i] <- end
+  transect_times$depth_ID[i] <- depth_ID
+  transect_times$duration[i] <- duration
+  transect_times$expedition[i] <- transect_start$expedition[i]
+  transect_times$dive_number[i] <- transect_start$dive_number[i]
+}
+
+# View(transect_times)
+midwater_annotations$unix_datetime <- as.numeric(midwater_annotations$date_time)
+# View(midwater_annotations)
+
+join1 <- dplyr::left_join(midwater_annotations,
+                          dplyr::select(transect_times, start, duration),
+                          dplyr::join_by("unix_datetime"=="start"))
+                              
+midwater_annotations2 <- fill(join1, duration)
+View(midwater_annotations2)
+
 #-------------------------------------------------------------------------------
 #Datetime when transect started
 # 
 
 # need to figure out how you want to set this up
 # read in from transect times OR just use depth ID on midwater_annotations in order to filter by transect
+
+transect<-unique(midwater_annotations$depth_ID)
+transect
 
 
 # transect_start<-filter(midwater_annotations, (str_detect(comment, regex("start transect", ignore_case = T))))
@@ -163,6 +202,16 @@ mean_benthic_depth <- midwater_annotations |>
   dplyr::filter(!is.na(depth_m)) |> 
   dplyr::group_by(dive_number) |> 
   dplyr::summarize(mean_depth = mean(depth_m))
+
+
+# species richness per minute
+
+
+
+
+# taxonomic abundance (per minute?)
+
+
 
 #Join counts of biological annotations by taxonomy, counts of interesting phyla,
 #counts of substrate annotations, and ROV dive information based on dive number
