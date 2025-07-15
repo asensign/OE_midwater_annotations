@@ -19,7 +19,7 @@ wd <- "C:/Users/Alexandra.Ensign/Documents/midwater_R_files/"
 setwd(wd)
 
 #set standard name to refer to your data
-data_name <- "EX1903L2"
+data_name <- "EX1806"
 
 midwater_annotations<-readr::read_csv(paste0(wd, data_name, "/exports/midwater_annotations_", 
                        data_name, ".csv"), col_names = TRUE)
@@ -90,7 +90,7 @@ for (j in seq(1, length(dive_numbers))){
   depth_ID <- unique(midwater_by_dive$depth_ID)
   print(depth_ID)
   
-  transect_duration_df <- na.omit(select(midwater_by_dive, depth_ID, transect_duration))
+  transect_duration_df <- na.omit(dplyr::select(midwater_by_dive, depth_ID, transect_duration))
   # View(transect_duration_df)
 
 
@@ -128,10 +128,12 @@ for (j in seq(1, length(dive_numbers))){
   # ASE calculate number of annotations per minute in each transect 
   # based on number of total biota and transect duration times
   
+  transect_duration_df$expedition <- data_name
+  transect_duration_df$dive_number <- (midwater_by_dive$dive_number[1])
   transect_duration_df$total_biota <- biological_annotations$total_biota
   transect_duration_df$ann_per_min <- biological_annotations$total_biota / transect_duration_df$transect_duration
-  # View(transect_duration_df)
-  
+
+}  
   #percentage of annotations flagged for review
   percent_flagged <- midwater_by_dive |> 
     dplyr::group_by(depth_ID) |> 
@@ -211,8 +213,6 @@ for (j in seq(1, length(dive_numbers))){
     dplyr::summarize(mean_depth = mean(depth_m))
   
 
-# }
-# View(mean_benthic_depth)
   # species richness per minute
   
   
@@ -238,11 +238,11 @@ for (j in seq(1, length(dive_numbers))){
   # dplyr::relocate(expedition, .before = dive_number)
   
   # View(summary_statistics)
-  
-  write.csv(summary_statistics, paste0(wd, data_name, "/exports/summary_statistics_dive_", dive_numbers[j],
+
+  write.csv(summary_statistics, paste0(wd, data_name, "/exports/summary_stats/summary_statistics_dive_", dive_numbers[j],
                                        ".csv"),row.names = FALSE)
 
-  write.csv(phyla_frequency_percent_all, paste0(wd, data_name, "/exports/phyla_frequency_percent_all_dive_", dive_numbers[j],
+  write.csv(phyla_frequency_percent_all, paste0(wd, data_name, "/exports/phyla_freq/phyla_frequency_percent_all_dive_", dive_numbers[j],
                                                 ".csv"),row.names = FALSE)
 
 
