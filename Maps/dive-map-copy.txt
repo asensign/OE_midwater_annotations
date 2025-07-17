@@ -1,0 +1,158 @@
+from glob import glob
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib_scalebar.scalebar import ScaleBar
+import numpy as np
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import cartopy.io.shapereader as shpreader
+import cartopy
+from cartopy.mpl.gridliner import LongitudeFormatter, LatitudeFormatter
+from cartopy.feature import ShapelyFeature
+import sys
+import os
+import warnings
+
+warnings.filterwarnings("ignore", message="invalid value encountered in buffer")
+warnings.filterwarnings("ignore", message="DownloadWarning")
+np.set_printoptions(threshold=sys.maxsize)
+
+
+# read in acoustic
+
+
+# coords from midwater dive summary table (google sheets)
+dives_1903L2 =  [2, 6, 8, 9, 14]
+lats_1903L2 = [29.110683,30.4344,30.9179,31.528833,35.73515]
+lons_1903L2 = [-79.445017,-79.581983,-78.087233,-77.15485,-74.81225]
+dives_1806 = [2, 4, 15]
+lats_1806 = [31.94937883,30.94027766,35.53850111]
+lons_1806 = [-75.52429803,-77.32827961,-74.80059902]
+dives_2107 = 3, 13
+lats_2107 = [30.70846,28.36854]
+lons_2107 = [-77.41911,-78.25901]
+
+# set coords
+lat0 = -65
+lat1 = -87
+lon0 = 20
+lon1 = 40
+
+# axes stuff
+#ax = plt.axes(projection=ccrs.PlateCarree())
+
+#Ocean bathymetry
+#----------------
+
+def load_bathymetry(zip_file_url):
+    #"""Read zip file from Natural Earth containing bathymetry shapefiles"""
+    # Download and extract shapefiles
+    import io
+    import zipfile
+
+    import requests
+    r = requests.get(zip_file_url)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z.extractall("ne_10m_bathymetry_all/")
+
+    # Read shapefiles, sorted by depth
+    shp_dict = {}
+    files = glob('ne_10m_bathymetry_all/*.shp')
+    assert len(files) > 0
+    files.sort()
+    depths = []
+    for f in files:
+        depth = '-' + f.split('_')[-1].split('.')[0]  # depth from file name
+        depths.append(depth)
+        #bbox = (72, 20, 87, 40)  # (x0, y0, x1, y1)//min lon, min lat, max loln, max lat
+        nei = shpreader.Reader(f)#, bbox=bbox)
+        shp_dict[depth] = nei
+    depths = np.array(depths)[::-1]  # sort from surface to bottom
+    return depths, shp_dict
+
+
+if __name__ == "__main__":
+    # Load data (14.8 MB file)
+    depths_str, shp_dict = load_bathymetry(
+        'https://naturalearth.s3.amazonaws.com/' +
+        '10m_physical/ne_10m_bathymetry_all.zip')
+
+    # Construct a discrete colormap with colors corresponding to each depth
+    depths = depths_str.astype(int)
+    N = len(depths)
+    nudge = 0.01  # shift bin edge slightly to include data
+    boundaries = [min(depths)] + sorted(depths+nudge)  # low to high
+    norm = matplotlib.colors.BoundaryNorm(boundaries, N)
+    blues_cm = matplotlib.colormaps['Blues_r'].resampled(N)
+    colors_depths = blues_cm(norm(depths))
+
+    # Set up plot
+    subplot_kw = {'projection': ccrs.Miller()}
+    fig, ax = plt.subplots(subplot_kw=subplot_kw, figsize=(9, 7))
+    ax.set_extent([lat0, lat1, lon0, lon1], crs=ccrs.PlateCarree())  # x0, x1, y0, y1
+
+    # Iterate and plot feature for each depth level
+    for i, depth_str in enumerate(depths_str):
+        ax.add_geometries(shp_dict[depth_str].geometries(),
+                          crs=ccrs.PlateCarree(),
+                          color=colors_depths[i])
+
+    # Add features
+    ax.add_feature(cfeature.LAND)
+    ax.coastlines()
+    islands = cartopy.feature.NaturalEarthFeature('physical', 'minor_islands', '10m')
+    ax.add_feature(islands)
+    ax.add_feature(cfeature.STATES)
+
+    # matching colors to echometrics timseries
+    colors = ["#CD34B5","#0000FF","#FFD700"]
+
+    # add markers for dives
+    for i in range(len(lats_1903L2)):
+        ax.plot(lons_1903L2[i], lats_1903L2[i], 'o', mfc=colors[0], mec=colors[0], transform=ccrs.PlateCarree(),label='EX1903L2')
+    for j in range(len(lats_1806)):
+        ax.plot(lons_1806[j], lats_1806[j], 'o', mfc=colors[1], mec=colors[1], transform=ccrs.PlateCarree(), label='EX1806')
+    for k in range(len(lats_2107)):
+        ax.plot(lons_2107[k], lats_2107[k], 'o', mfc=colors[2], mec=colors[2], transform=ccrs.PlateCarree(),label='EX2107')
+
+
+    # do not duplicate legend labels for each dive
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+
+    # add legend
+    plt.legend(by_label.values(), by_label.keys(), loc='upper right')
+
+    plt.title("Dive Locations")
+  
+    # Convert vector bathymetries to raster (saves a lot of disk space)
+    # while leaving labels as vectors
+    ax.set_rasterized(True)
+    
+    plt.savefig("../../../dive_plot.png") 
+    plt.show()
+
+sys.exit()
+
+
+
+
+#ax.plot(lons_1806[j], lats_1806[j], 'bo', markersize=5, transform=ccrs.PlateCarree(), label='EX1806')
+#ax.plot(lons_1903L2[i], lats_1903L2[i], 'go', markersize=5, transform=ccrs.PlateCarree(), label='EX1903L2')
+#ax.plot(lons_2107[k], lats_2107[k], 'ro', markersize=5, transform=ccrs.PlateCarree(),label='EX2107')
+
+#bathy = cartopy.feature.NaturalEarthFeature(category='physical', scale='10m', name='bathymetry_all')
+#islands = cartopy.feature.NaturalEarthFeature('physical', 'minor_islands', '10m')
+#ocean = cartopy.feature.NaturalEarthFeature('physical', 'ocean', '10m')
+
+#ax.add_feature(bathy)
+#ax.add_feature(ocean)
+#ax.coastlines()
+#ax.add_feature(cfeature.LAND, color='beige')
+#ax.add_feature(cfeature.BORDERS)
+
+
+
+
+sys.exit()
+

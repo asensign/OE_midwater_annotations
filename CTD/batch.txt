@@ -1,0 +1,6 @@
+@ test sbe batch process for EX1806 on 6/2/25 ASE
+
+
+datcnv /iC:CTD/EX1806\*.dat /cC:\C:CTD\EX1806\EX1806_DIVE01_20180614_ROVCTD.XMLCON
+@ assuming it's ok to use same config. file across an expedition (instead of for each dive)??
+derive /iC:CTD/EX1806\*.cnv /cC:CTD/EX1806/EX1806_DIVE01_20180614_ROVCTD.XMLCON

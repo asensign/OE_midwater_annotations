@@ -1,0 +1,28 @@
+from glob import glob
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib_scalebar.scalebar import ScaleBar
+import numpy as np
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import cartopy.io.shapereader as shpreader
+import cartopy
+from cartopy.mpl.gridliner import LongitudeFormatter, LatitudeFormatter
+from cartopy.feature import ShapelyFeature
+import sys
+import os
+import warnings
+
+
+# read in acoustic data as csv
+
+acoustics_files = glob("../../../echoview_output/*.csv")
+
+df_list = []
+
+for file in acoustics_files:
+	df1 = pd.read_csv(file)
+	df_list.append(df1)
+
+df = pd.concat(df_list)
+print(head(df))

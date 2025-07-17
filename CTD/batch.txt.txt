@@ -1,0 +1,7 @@
+datcnv /iC:\CTD\EX1806\*.hex /cC:\CTD\EX1806\EX1806_DIVE01_20180614_ROVCTD.XMLCON /pC:\../AppData\Local\Sea-Bird\SBEDataProcessing-Win32\DatCnv.psa
+
+@ C:\Users\Alexandra.Ensign\AppData\Local\Sea-Bird\SBEDataProcessing-Win32\DatCnv.psa
+
+
+@ test SBE batch process for EX1806 on 6/2/25 ASE
+@ assuming it's ok to use same config. file across an expedition (instead of for each dive)??

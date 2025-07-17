@@ -84,7 +84,7 @@ end_1903L2 <- as.POSIXct('2019-07-06 22:06') # fix this one - it's not accurate 
 start_2107 <- as.POSIXct('2021-10-27 06:50:03.57')
 end_2107 <- as.POSIXct('2021-11-15 07:10:29:00')
 
-echometrics$TimeCategory <- case_when(
+echometrics$expedition <- case_when(
   echometrics$Datetime_S >= start_1806 & echometrics$Datetime_S <= end_1806 ~ "1806",
   echometrics$Datetime_S >= start_1903L2 & echometrics$Datetime_S <= end_1903L2 ~ "1903L2",
   echometrics$Datetime_S >= start_2107 & echometrics$Datetime_S <= end_2107 ~ "2107",
@@ -93,7 +93,7 @@ echometrics$TimeCategory <- case_when(
 echometrics$month <- format(echometrics$Datetime_S, "%B")
 # View(echometrics)
 
-echometrics <- echometrics %>% drop_na(TimeCategory)
+echometrics <- echometrics %>% drop_na(expedition)
 echometrics <- echometrics %>% drop_na(Lon_S)
 echometrics <- echometrics %>% drop_na(Lat_S)
 # View(echometrics)
@@ -133,47 +133,47 @@ write.csv(echometrics, paste0(wd, "echometrics.csv"))
 # Timeseries plots
 
 # Sv vs. Time
-sv_time <- ggplot(data = echometrics, aes(x = Time, y = Sv_mean, color = TimeCategory)) + geom_line() + labs(y= "Sv (dB re 1 m^-1)", x = "Time") + 
+sv_time <- ggplot(data = echometrics, aes(x = Time, y = Sv_mean, color = expedition)) + geom_line() + labs(y= "Sv (dB re 1 m^-1)", x = "Time") + 
   theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700')) 
-sv_time <- sv_time + facet_wrap(TimeCategory ~ ., scales="free_x", nrow=3)
+sv_time <- sv_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(sv_time)
 ggsave("Figures/sv_timeseries.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
 # Centre of Mass vs. Time
-com_time <- ggplot(data = echometrics, aes(x = Time, y = Center_of_mass, color = TimeCategory)) + geom_line() +
+com_time <- ggplot(data = echometrics, aes(x = Time, y = Center_of_mass, color = expedition)) + geom_line() +
   labs(y= "Centre of Mass (m)", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
-com_time <- com_time + facet_wrap(TimeCategory ~ ., scales="free_x", nrow=3)
+com_time <- com_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(com_time)
 ggsave("Figures/com_timeseries.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
 # Inertia vs. Time
-# inertia_time <- ggplot(data = echometrics, aes(x = Time, y = Inertia, color = TimeCategory)) + geom_line() +
+# inertia_time <- ggplot(data = echometrics, aes(x = Time, y = Inertia, color = expedition)) + geom_line() +
   # labs(y="Inertia (m^-2)", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
-# intertia_time <- inertia_time + facet_wrap(TimeCategory ~ ., scales="free_x", nrow=3)
+# intertia_time <- inertia_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 # print(inertia_time)
 
 # Proportion Occupied vs. Time
-po_time <- ggplot(data = echometrics, aes(x = Time, y = Proportion_occupied, color = TimeCategory)) + geom_line() + 
+po_time <- ggplot(data = echometrics, aes(x = Time, y = Proportion_occupied, color = expedition)) + geom_line() + 
   labs(y="Proportion Occupied", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
-po_time <- po_time + facet_wrap(TimeCategory ~ ., scales="free_x", nrow=3)
+po_time <- po_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(po_time)
 ggsave("Figures/po_timeseries.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
 # Aggregation vs. Time
-ai_time <- ggplot(data = echometrics, aes(x = Time, y = log_ai, color = TimeCategory)) + geom_line() + 
+ai_time <- ggplot(data = echometrics, aes(x = Time, y = log_ai, color = expedition)) + geom_line() + 
   labs(y="Log Index Aggregation", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
-ai_time <- ai_time + facet_wrap(TimeCategory ~ ., scales="free_x", nrow=3)
+ai_time <- ai_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(ai_time)
 ggsave("Figures/ai_timeseries.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
 # Equivalent Area vs. Time 
-ea_time <- ggplot(data = echometrics, aes(x = Time, y = log_ea, color = TimeCategory)) + geom_line() + 
+ea_time <- ggplot(data = echometrics, aes(x = Time, y = log_ea, color = expedition)) + geom_line() + 
   labs(y="Figures/Log Equivalent Area", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
-ea_time <- ea_time + facet_wrap(TimeCategory ~ ., scales="free_x", nrow=3)
+ea_time <- ea_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(ea_time)
 ggsave("Figures/ea_timeseries.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
@@ -184,7 +184,7 @@ figure_1 <- ggarrange(sv_time, com_time,  po_time, ai_time, ea_time, #inertia_ti
                       align = c("v"),
                       ncol = 2, nrow = 3) 
 print(figure_1)
-ggsave("Figures/agg_timeseries.png",plot = last_plot(),device=png(),dpi=100)
+ggsave("Figures/agg_timeseries.png",plot = last_plot(),device=png())
 dev.off()
 
 # if we want to use both start and end times for something:
@@ -274,6 +274,12 @@ figure_2 <- ggarrange(sv_position, com_position, po_position, ai_position, #iner
                       ncol = 3, nrow = 3)
 print(figure_2)
 ggsave("Figures/agg_spatial.png",plot = last_plot(),device=png(),dpi=100)
+dev.off()
 
 
 
+# crise track map
+cruise_track_map <- map + geom_point(data = echometrics, aes(x = Longitude, y = Latitude, color = expedition)) + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700')) + labs(y="Latitude", x = "Longitude")
+print(cruise_track_map)
+ggsave("Figures/cruise_track_map.png",plot = last_plot(),device=png(),dpi=100)
+dev.off()
