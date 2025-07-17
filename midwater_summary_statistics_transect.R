@@ -19,7 +19,7 @@ wd <- "C:/Users/Alexandra.Ensign/Documents/midwater_R_files/"
 setwd(wd)
 
 #set standard name to refer to your data
-data_name <- "EX1806"
+data_name <- "EX1903L2"
 
 midwater_annotations<-readr::read_csv(paste0(wd, data_name, "/exports/midwater_annotations_", 
                        data_name, ".csv"), col_names = TRUE)
@@ -51,12 +51,12 @@ colnames(transect_times) <- col_names
 for (i in 1:nrow(transect_start)) {
   # for (i in 1:2) {
   start<- transect_start$date_time[i]
-  # end<- transect_end$date_time[i]
+  end<- transect_end$date_time[i]
   depth_ID <- transect_start$depth_ID[i]
   duration<- difftime(transect_end$date_time[i], transect_start$date_time[i])
   
   transect_times$start[i] <- start
-  # transect_times$end[i] <- end
+  transect_times$end[i] <- end
   transect_times$depth_ID[i] <- depth_ID
   transect_times$transect_duration[i] <- duration
   transect_times$expedition[i] <- transect_start$expedition[i]
@@ -69,9 +69,9 @@ midwater_annotations$unix_datetime <- as.numeric(midwater_annotations$date_time)
 
 # join transect duration times to the midwater annotations
 midwater_annotations <- dplyr::left_join(midwater_annotations,
-                          dplyr::select(transect_times, start, transect_duration),
+                          dplyr::select(transect_times, start, end, transect_duration),
                           dplyr::join_by("unix_datetime"=="start"))
-# View(midwater_annotations)
+View(midwater_annotations)
 
 
 #-------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ for (j in seq(1, length(dive_numbers))){
   depth_ID <- unique(midwater_by_dive$depth_ID)
   print(depth_ID)
   
-  transect_duration_df <- na.omit(dplyr::select(midwater_by_dive, depth_ID, transect_duration))
+  transect_duration_df <- na.omit(dplyr::select(midwater_by_dive, depth_ID, transect_duration, date_time, end))
   # View(transect_duration_df)
 
 
@@ -132,8 +132,9 @@ for (j in seq(1, length(dive_numbers))){
   transect_duration_df$dive_number <- (midwater_by_dive$dive_number[1])
   transect_duration_df$total_biota <- biological_annotations$total_biota
   transect_duration_df$ann_per_min <- biological_annotations$total_biota / transect_duration_df$transect_duration
+  # transect_duration_df$start <- dplyr::filter(transect_times$start, dive_number == dive_numbers[j])
+  # transect_duration_df$end <- dplyr::filter(transect_times$end,  dive_number == dive_numbers[j])
 
-}  
   #percentage of annotations flagged for review
   percent_flagged <- midwater_by_dive |> 
     dplyr::group_by(depth_ID) |> 
