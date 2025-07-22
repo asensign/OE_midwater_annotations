@@ -283,3 +283,17 @@ cruise_track_map <- map + geom_point(data = echometrics, aes(x = Longitude, y = 
 print(cruise_track_map)
 ggsave("Figures/cruise_track_map.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
+
+## dive map
+
+
+dive_lons <- c(-75.52429803,-77.32827961,-74.80059902, -79.445017,-79.581983,-78.087233,-77.15485,-74.81225, -77.41911,-78.25901)
+dive_lats <- c(31.94937883,30.94027766,35.53850111, 29.110683,30.4344,30.9179,31.528833,35.73515, 30.70846,28.36854)
+dive_expedition <- c("1806","1806","1806","1903L2","1903L2","1903L2","1903L2","1903L2","2107","2107")
+dive_coords <- data.frame(Column1=dive_lons, Column2=dive_lats, Column3=dive_expedition)
+View(dive_coords)
+
+dive_map <- map + geom_point(data = dive_coords, aes(x = dive_lons, y = dive_lats, color = dive_expedition)) + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700')) + labs(y="Latitude", x = "Longitude")
+print(dive_map)
+ggsave("Figures/dive_map.png",plot = last_plot(),device=png(),dpi=100)
+dev.off()
