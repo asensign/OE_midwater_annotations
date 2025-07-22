@@ -1,3 +1,5 @@
+### projection on this was not correct (and same for cruise map in python) - needs help with cartopy coords 
+
 from glob import glob
 import pandas as pd
 import matplotlib
