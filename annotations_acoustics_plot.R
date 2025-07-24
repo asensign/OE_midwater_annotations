@@ -91,16 +91,6 @@ stats_table[, RollDate := date_time]
 echometrics_table[, RollDate := Datetime_S]
 
 # set keys for data tables
-setkey(stats_table, "RollDate")
-setkey(echometrics_table, "RollDate")
-
-# rolling join
-roll_stats_to_echometrics <- stats_table[echometrics_table, roll=TRUE]
-# View(roll_stats_to_echometrics)
-
-##### flipped version: roll echometrics to join nearest stats times. 
-
-# set keys for data tables
 setkey(echometrics_table, "RollDate")
 setkey(stats_table, "RollDate")
 
