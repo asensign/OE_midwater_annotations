@@ -69,12 +69,11 @@ for (j in seq(1, length(data_names))){
 stats_all_exs$expedition2 <- str_remove(stats_all_exs$expedition, "EX")
 # remove dive 14 freom 1903L2 !!!
 stats_all_exs <- stats_all_exs %>% dplyr::filter(dive_number != "14") # also plot once before removing
-View(stats_all_exs)
 
+View(stats_all_exs)
 
 #----------------------------------------------------------------
 # Create basic box/scatter plots of annotations per minute by ex/dive/transect
-# no environmental data here yet
 
 # box plot of annotations/min for each expedition
 bp <- ggplot(stats_all_exs, aes(x=expedition2, y=ann_per_min, fill=expedition, color=expedition2)) + theme_bw() +
@@ -107,7 +106,7 @@ scatter_all <- ggplot(stats_all_exs, aes(x=ann_per_min, y=depth_ID, color=expedi
 #----------------------------------------------------------------
 #----------------------------------------------------------------
 
-# Filter CTD data and rbind from dive files to expedition df to df with both expeditions
+# Filter CTD data and rbind from dive files to expedition df to a df with both expeditions
 
 CTD_all_exs <- data.frame()
 
@@ -225,7 +224,8 @@ View(joined)
 #----------------------------------------------------------------
 #----------------------------------------------------------------
 
-# plot CTD vs ann/min as scatter plots
+# Plots
+# CTD vs ann/min as scatter plots
 
 # prDE <- ggplot(joined, aes(x=prDE, y=ann_per_min, color=expedition2)) + theme_bw() +
 #   geom_point(size=2) + ylab("Average annotations per minute") + xlab("Average pressure (psi)") +  

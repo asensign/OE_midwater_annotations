@@ -1,3 +1,9 @@
+
+# unfinished - ASE
+# smoothing routine needs to be modified for midwater
+# then the rest needs debugged
+#-------------------------------------------------------------------------------
+
 #Tests for package availability and installs missing packages that are needed
 #in order to run this code:
 if(!require('dplyr'))install.packages('dplyr')

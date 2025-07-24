@@ -40,19 +40,19 @@ echometrics$Datetime_E <- with(echometrics, as.POSIXct(paste(Date_E, Time_E),
                                                        format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
 
 # We need to check the distributions of our echometrics by creating histograms for them.
-# hist(echometrics$Sv_mean)
-# hist(echometrics$Center_of_mass)
-# hist(echometrics$Inertia)
-# hist(echometrics$Proportion_occupied)
-# hist(echometrics$Aggregation_index)
-# hist(echometrics$Equivalent_area)
+hist(echometrics$Sv_mean)
+hist(echometrics$Center_of_mass)
+hist(echometrics$Inertia)
+hist(echometrics$Proportion_occupied)
+hist(echometrics$Aggregation_index)
+hist(echometrics$Equivalent_area)
 
 # We can see that the aggregation index and equivalent area are very skewed, so we will transform them to log scale.
 # Check their histograms.
 echometrics$log_ea <- log(echometrics$Equivalent_area)
 echometrics$log_ai <- log(echometrics$Aggregation_index)
-# hist(echometrics$log_ai)
-# hist(echometrics$log_ea)
+hist(echometrics$log_ai)
+hist(echometrics$log_ea)
 
 # View(echometrics)
 # print(length(echometrics$Datetime_S))
@@ -91,17 +91,15 @@ echometrics$expedition <- case_when(
 )
 
 echometrics$month <- format(echometrics$Datetime_S, "%B")
-# View(echometrics)
 
+# drop na values from certain cols
+# dropping all na values earlier caused problems for me, but this seems OK
 echometrics <- echometrics %>% drop_na(expedition)
 echometrics <- echometrics %>% drop_na(Lon_S)
 echometrics <- echometrics %>% drop_na(Lat_S)
-# View(echometrics)
 
 # set variable for plotting (must do this AFTER data cleaning!)
 Time <- echometrics$Datetime_S
-
-
 # print(length(Time))
 Longitude <- echometrics$Lon_S
 Latitude <- echometrics$Lat_S
@@ -109,7 +107,8 @@ Latitude <- echometrics$Lat_S
 View(echometrics)
 
 #--------------------------------------------------------------------------------------
-# read in transect times (trust that resetting the wd was the easier way... lapply throws a fit w/ the path option in list.files())
+# read in transect times 
+# (resetting the wd was the easier way... lapply throws a fit w/ the path option in list.files())
 wd <- paste0("C:/Users/Alexandra.Ensign/Documents/echoview_output/transect_times/")
 setwd(wd)
 # bind all of the files together
@@ -134,18 +133,18 @@ write.csv(echometrics, paste0(wd, "echometrics.csv"))
 
 # Sv vs. Time
 sv_time <- ggplot(data = echometrics, aes(x = Time, y = Sv_mean, color = expedition)) + geom_line() + labs(y= "Sv (dB re 1 m^-1)", x = "Time") + 
-  theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700')) 
+  theme_bw() + theme(axis.text.x = element_text(size = 10), axis.text.y = element_text(size=10)) + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700')) 
 sv_time <- sv_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(sv_time)
-ggsave("Figures/sv_timeseries.png",plot = last_plot(),device=png(),dpi=100)
+ggsave("Figures/sv_timeseries.png",plot = last_plot(),device=png(),dpi=200,width=3,height=3.65,units="in")
 dev.off()
 
 # Centre of Mass vs. Time
 com_time <- ggplot(data = echometrics, aes(x = Time, y = Center_of_mass, color = expedition)) + geom_line() +
-  labs(y= "Centre of Mass (m)", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
+  labs(y= "Centre of Mass (m)", x = "Time") + theme_bw() + theme(axis.text.x = element_text(size = 10), axis.text.y = element_text(size=10)) + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
 com_time <- com_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(com_time)
-ggsave("Figures/com_timeseries.png",plot = last_plot(),device=png(),dpi=100)
+ggsave("Figures/com_timeseries.png",plot = last_plot(),device=png(),dpi=200,width=3,height=3.65,units="in")
 dev.off()
 
 # Inertia vs. Time
@@ -156,22 +155,22 @@ dev.off()
 
 # Proportion Occupied vs. Time
 po_time <- ggplot(data = echometrics, aes(x = Time, y = Proportion_occupied, color = expedition)) + geom_line() + 
-  labs(y="Proportion Occupied", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
+  labs(y="Proportion Occupied", x = "Time") + theme_bw() + theme(axis.text.x = element_text(size = 10), axis.text.y = element_text(size=10)) + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
 po_time <- po_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(po_time)
-ggsave("Figures/po_timeseries.png",plot = last_plot(),device=png(),dpi=100)
+ggsave("Figures/po_timeseries.png",plot = last_plot(),device=png(),dpi=100,width=3,height=3.65,units="in")
 dev.off()
 
 # Aggregation vs. Time
-ai_time <- ggplot(data = echometrics, aes(x = Time, y = log_ai, color = expedition)) + geom_line() + 
+ai_time <- ggplot(data = echometrics, aes(x = Time, y = log_ai, color = expedition)) + geom_line() +
   labs(y="Log Index Aggregation", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
 ai_time <- ai_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(ai_time)
 ggsave("Figures/ai_timeseries.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
-# Equivalent Area vs. Time 
-ea_time <- ggplot(data = echometrics, aes(x = Time, y = log_ea, color = expedition)) + geom_line() + 
+# Equivalent Area vs. Time
+ea_time <- ggplot(data = echometrics, aes(x = Time, y = log_ea, color = expedition)) + geom_line() +
   labs(y="Figures/Log Equivalent Area", x = "Time") + theme_bw() + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700'))
 ea_time <- ea_time + facet_wrap(expedition ~ ., scales="free_x", nrow=3)
 print(ea_time)
@@ -187,47 +186,11 @@ print(figure_1)
 ggsave("Figures/agg_timeseries.png",plot = last_plot(),device=png())
 dev.off()
 
-# if we want to use both start and end times for something:
-
-# # reformat each date and time col into UTC
-# echometrics$Date_S <- as.POSIXct(strptime(echometrics$Date_S, format = "%Y%m%d", tz = "UTC"))
-# echometrics$Date_E <- as.POSIXct(strptime(echometrics$Date_E, format = "%Y%m%d", tz = "UTC"))
-# 
-# echometrics$Time_S <- as_hms(as.POSIXct(strptime(echometrics$Time_S, format = "%H:%M:%OS", tz = "UTC")))
-# echometrics$Time_E <- as_hms(as.POSIXct(strptime(echometrics$Time_E, format = "%H:%M:%OS", tz = "UTC")))
-# 
-# # combine into datetime col for sorting purposes
-# echometrics$Datetime_S <- with(echometrics, as.POSIXct(paste(Date_S, Time_S),
-#                                                        format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
-# echometrics$Datetime_E <- with(echometrics, as.POSIXct(paste(Date_E, Time_E),
-#                                                        format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
-# 
-# # select only the datetimes to use for plotting 
-# times1 <- select(echometrics, Datetime_S, Datetime_E)
-# head(times1)
-# 
-# # unlist into a vector, then combine start and end times and sort by datetime (so one big column of all timestamps, start and end)
-# times <- arrange(data.frame(Datetime=unlist(times1, use.names = FALSE)), Datetime)
-# 
-# # reformat back into UTC after unlisting
-# times$Datetime <- as.POSIXct(times$Datetime, format = "%Y%m%d", tz = "UTC")
-# head(times)
-# # print(length(times$Datetime)) # 5762 = 2881*2
-# 
-# # set variable for plotting
-# Time <- times$Datetime
-
-
-
 #-------------------------------------------------------------------------------
+
 # Spatial plots
 
-# First we must make a blank map to plot the echometrics on.
-
-# lat0 = -65
-# lat1 = -87
-# lon0 = 20
-# lon1 = 40
+# base map plot
 map <- ggplot() + geom_sf(data = spData::world, fill = "grey80", col = "black") + coord_sf(xlim = c(-82, -72), ylim = c(20, 40)) + theme_bw() + labs(y = "Latitude", x = "Longitude")
 print(map)
 
@@ -267,7 +230,6 @@ ggsave("Figures/ea_spatial.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
 # Putting all six plots on the same figure.
-# this one has issues
 figure_2 <- ggarrange(sv_position, com_position, po_position, ai_position, #inertia_position,
                       ea_position, labels = c("A", "B", "C", "D", "E"), #F
                       align = c("hv"),
@@ -277,16 +239,13 @@ ggsave("Figures/agg_spatial.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
 
-
-# crise track map
+# cruise track map
 cruise_track_map <- map + geom_point(data = echometrics, aes(x = Longitude, y = Latitude, color = expedition)) + scale_color_manual(values = c("1806" = "#CD34B5", "1903L2" = "#0000FF", "2107" = '#FFD700')) + labs(y="Latitude", x = "Longitude")
 print(cruise_track_map)
 ggsave("Figures/cruise_track_map.png",plot = last_plot(),device=png(),dpi=100)
 dev.off()
 
 ## dive map
-
-
 dive_lons <- c(-75.52429803,-77.32827961,-74.80059902, -79.445017,-79.581983,-78.087233,-77.15485,-74.81225, -77.41911,-78.25901)
 dive_lats <- c(31.94937883,30.94027766,35.53850111, 29.110683,30.4344,30.9179,31.528833,35.73515, 30.70846,28.36854)
 dive_expedition <- c("1806","1806","1806","1903L2","1903L2","1903L2","1903L2","1903L2","2107","2107")
